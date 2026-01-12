@@ -6,6 +6,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import Link from "next/link"
 
 const projects = [
   {
@@ -82,35 +83,55 @@ export function ProjectsTable() {
         </TableHeader>
         <TableBody>
           {projects.map((project) => (
-            <TableRow key={project.id}>
-              <TableCell className="font-medium">{project.id}</TableCell>
-              <TableCell>{project.name}</TableCell>
-              <TableCell>
-                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                  project.status === 'Completed' 
-                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                    : project.status === 'In Progress'
-                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                    : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
-                }`}>
-                  {project.status}
-                </span>
+            <TableRow key={project.id} className="hover:bg-muted/50 cursor-pointer">
+              <TableCell className="font-medium">
+                <Link href={`/projects/${project.id}`} className="block hover:underline">
+                  {project.id}
+                </Link>
               </TableCell>
               <TableCell>
-                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                  project.priority === 'Critical'
-                    ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                    : project.priority === 'High'
-                    ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
-                    : project.priority === 'Medium'
-                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                    : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
-                }`}>
-                  {project.priority}
-                </span>
+                <Link href={`/projects/${project.id}`} className="block hover:underline">
+                  {project.name}
+                </Link>
               </TableCell>
-              <TableCell>{project.dueDate}</TableCell>
-              <TableCell>{project.team}</TableCell>
+              <TableCell>
+                <Link href={`/projects/${project.id}`} className="block">
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    project.status === 'Completed' 
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                      : project.status === 'In Progress'
+                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                      : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                  }`}>
+                    {project.status}
+                  </span>
+                </Link>
+              </TableCell>
+              <TableCell>
+                <Link href={`/projects/${project.id}`} className="block">
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    project.priority === 'Critical'
+                      ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                      : project.priority === 'High'
+                      ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+                      : project.priority === 'Medium'
+                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                      : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                  }`}>
+                    {project.priority}
+                  </span>
+                </Link>
+              </TableCell>
+              <TableCell>
+                <Link href={`/projects/${project.id}`} className="block">
+                  {project.dueDate}
+                </Link>
+              </TableCell>
+              <TableCell>
+                <Link href={`/projects/${project.id}`} className="block">
+                  {project.team}
+                </Link>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

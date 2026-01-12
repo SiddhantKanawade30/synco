@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { AppSidebar } from "@/components/app-sidebar"
-import { MailList, MailViewer } from "@/components/mail-components"
+import { MailList, MailViewer, emails } from "@/components/mail-components"
 import {
   SidebarInset,
   SidebarProvider,
