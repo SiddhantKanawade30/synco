@@ -2,7 +2,7 @@
 
 A modern project management application built with Next.js for tracking tasks, managing projects, and organizing issues.
 
-![Dashboard](/dashboard.png)
+![Dashboard](./public/dashboard.png)
 
 ## Features
 
