@@ -10,8 +10,9 @@ import {
   FieldSeparator,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import Link from "next/link"
 
-export function SignupForm({
+export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
@@ -31,7 +32,7 @@ export function SignupForm({
             </a>
             <h1 className="text-xl font-bold">Welcome to Acme Inc.</h1>
             <FieldDescription>
-              Already have an account? <a href="/signin">Sign in</a>
+              Don&apos;t have an account? <Link href="/signup">Sign up</Link>
             </FieldDescription>
           </div>
           <Field>
@@ -41,11 +42,12 @@ export function SignupForm({
               type="email"
               placeholder="m@example.com"
               required
-              className="border border-neutral-300"
             />
           </Field>
           <Field>
-            <Button type="submit">Create Account</Button>
+            <Link href="/dashboard">
+            <Button type="submit" className="w-full">Login</Button>
+            </Link>
           </Field>
           <FieldSeparator>Or</FieldSeparator>
           <Field className="grid gap-4 sm:grid-cols-2">

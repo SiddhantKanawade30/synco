@@ -111,9 +111,9 @@ export const schema = z.object({
   header: z.string(),
   type: z.string(),
   status: z.string(),
-  target: z.string(),
-  limit: z.string(),
-  reviewer: z.string(),
+  assignedDate: z.string(),
+  deadline: z.string(),
+  assignedTo: z.string(),
 })
 
 // Create a separate component for the drag handle
@@ -202,8 +202,8 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
     ),
   },
   {
-    accessorKey: "target",
-    header: () => <div className="w-full text-right">Target</div>,
+    accessorKey: "assignedDate",
+    header: () => <div className="w-full text-right">Assigned Date</div>,
     cell: ({ row }) => (
       <form
         onSubmit={(e) => {
@@ -215,20 +215,20 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
           })
         }}
       >
-        <Label htmlFor={`${row.original.id}-target`} className="sr-only">
-          Target
+        <Label htmlFor={`${row.original.id}-assignedDate`} className="sr-only">
+          Assigned Date
         </Label>
         <Input
-          className="hover:bg-input/30 focus-visible:bg-background h-8 w-16 border-transparent bg-transparent text-right shadow-none focus-visible:border"
-          defaultValue={row.original.target}
-          id={`${row.original.id}-target`}
+          className="hover:bg-input/30 focus-visible:bg-background h-8 w-24 border-transparent bg-transparent text-right shadow-none focus-visible:border"
+          defaultValue={row.original.assignedDate}
+          id={`${row.original.id}-assignedDate`}
         />
       </form>
     ),
   },
   {
-    accessorKey: "limit",
-    header: () => <div className="w-full text-right">Limit</div>,
+    accessorKey: "deadline",
+    header: () => <div className="w-full text-right">Deadline</div>,
     cell: ({ row }) => (
       <form
         onSubmit={(e) => {
@@ -240,45 +240,53 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
           })
         }}
       >
-        <Label htmlFor={`${row.original.id}-limit`} className="sr-only">
-          Limit
+        <Label htmlFor={`${row.original.id}-deadline`} className="sr-only">
+          Deadline
         </Label>
         <Input
-          className="hover:bg-input/30 focus-visible:bg-background h-8 w-16 border-transparent bg-transparent text-right shadow-none focus-visible:border"
-          defaultValue={row.original.limit}
-          id={`${row.original.id}-limit`}
+          className="hover:bg-input/30 focus-visible:bg-background h-8 w-24 border-transparent bg-transparent text-right shadow-none focus-visible:border"
+          defaultValue={row.original.deadline}
+          id={`${row.original.id}-deadline`}
         />
       </form>
     ),
   },
   {
-    accessorKey: "reviewer",
-    header: "Reviewer",
+    accessorKey: "assignedTo",
+    header: "Assigned To",
     cell: ({ row }) => {
-      const isAssigned = row.original.reviewer !== "Assign reviewer"
+      const isAssigned = row.original.assignedTo !== "Assign member"
 
       if (isAssigned) {
-        return row.original.reviewer
+        return row.original.assignedTo
       }
 
       return (
         <>
-          <Label htmlFor={`${row.original.id}-reviewer`} className="sr-only">
-            Reviewer
+          <Label htmlFor={`${row.original.id}-assignedTo`} className="sr-only">
+            Assigned To
           </Label>
           <Select>
             <SelectTrigger
               className="w-38 **:data-[slot=select-value]:block **:data-[slot=select-value]:truncate"
               size="sm"
-              id={`${row.original.id}-reviewer`}
+              id={`${row.original.id}-assignedTo`}
             >
-              <SelectValue placeholder="Assign reviewer" />
+              <SelectValue placeholder="Assign team member" />
             </SelectTrigger>
             <SelectContent align="end">
-              <SelectItem value="Eddie Lake">Eddie Lake</SelectItem>
-              <SelectItem value="Jamik Tashpulatov">
-                Jamik Tashpulatov
-              </SelectItem>
+              <SelectItem value="John Smith">John Smith</SelectItem>
+              <SelectItem value="Sarah Johnson">Sarah Johnson</SelectItem>
+              <SelectItem value="Mike Wilson">Mike Wilson</SelectItem>
+              <SelectItem value="Emily Davis">Emily Davis</SelectItem>
+              <SelectItem value="Alex Chen">Alex Chen</SelectItem>
+              <SelectItem value="Lisa Wong">Lisa Wong</SelectItem>
+              <SelectItem value="David Kim">David Kim</SelectItem>
+              <SelectItem value="Maria Garcia">Maria Garcia</SelectItem>
+              <SelectItem value="Tom Anderson">Tom Anderson</SelectItem>
+              <SelectItem value="Rachel Lee">Rachel Lee</SelectItem>
+              <SelectItem value="James Wilson">James Wilson</SelectItem>
+              <SelectItem value="Nina Patel">Nina Patel</SelectItem>
             </SelectContent>
           </Select>
         </>
@@ -428,10 +436,10 @@ export function DataTable({
         <TabsList className="**:data-[slot=badge]:bg-muted-foreground/30 hidden **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:px-1 @4xl/main:flex">
           <TabsTrigger value="outline">Outline</TabsTrigger>
           <TabsTrigger value="past-performance">
-            Past Performance <Badge variant="secondary">3</Badge>
+            Past Performance <Badge variant="secondary">5</Badge>
           </TabsTrigger>
           <TabsTrigger value="key-personnel">
-            Key Personnel <Badge variant="secondary">2</Badge>
+            Key Personnel <Badge variant="secondary">3</Badge>
           </TabsTrigger>
           <TabsTrigger value="focus-documents">Focus Documents</TabsTrigger>
         </TabsList>
@@ -628,22 +636,22 @@ export function DataTable({
 }
 
 const chartData = [
-  { month: "January", desktop: 186, mobile: 80 },
-  { month: "February", desktop: 305, mobile: 200 },
-  { month: "March", desktop: 237, mobile: 120 },
-  { month: "April", desktop: 73, mobile: 190 },
-  { month: "May", desktop: 209, mobile: 130 },
-  { month: "June", desktop: 214, mobile: 140 },
+  { month: "January", completed: 8, inProgress: 5 },
+  { month: "February", completed: 12, inProgress: 3 },
+  { month: "March", completed: 10, inProgress: 4 },
+  { month: "April", completed: 15, inProgress: 2 },
+  { month: "May", completed: 9, inProgress: 6 },
+  { month: "June", completed: 14, inProgress: 3 },
 ]
 
 const chartConfig = {
-  desktop: {
-    label: "Desktop",
+  completed: {
+    label: "Completed",
     color: "var(--primary)",
   },
-  mobile: {
-    label: "Mobile",
-    color: "var(--primary)",
+  inProgress: {
+    label: "In Progress",
+    color: "var(--chart-3)",
   },
 } satisfies ChartConfig
 
@@ -661,7 +669,7 @@ function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
         <DrawerHeader className="gap-1">
           <DrawerTitle>{item.header}</DrawerTitle>
           <DrawerDescription>
-            Showing total visitors for the last 6 months
+            Project status and task completion metrics
           </DrawerDescription>
         </DrawerHeader>
         <div className="flex flex-col gap-4 overflow-y-auto px-4 text-sm">
@@ -690,19 +698,19 @@ function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
                     content={<ChartTooltipContent indicator="dot" />}
                   />
                   <Area
-                    dataKey="mobile"
+                    dataKey="inProgress"
                     type="natural"
-                    fill="var(--color-mobile)"
+                    fill="var(--color-inProgress)"
                     fillOpacity={0.6}
-                    stroke="var(--color-mobile)"
+                    stroke="var(--color-inProgress)"
                     stackId="a"
                   />
                   <Area
-                    dataKey="desktop"
+                    dataKey="completed"
                     type="natural"
-                    fill="var(--color-desktop)"
+                    fill="var(--color-completed)"
                     fillOpacity={0.4}
-                    stroke="var(--color-desktop)"
+                    stroke="var(--color-completed)"
                     stackId="a"
                   />
                 </AreaChart>
@@ -710,13 +718,12 @@ function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
               <Separator />
               <div className="grid gap-2">
                 <div className="flex gap-2 leading-none font-medium">
-                  Trending up by 5.2% this month{" "}
+                  Project completion rate improved by 15% this month{" "}
                   <IconTrendingUp className="size-4" />
                 </div>
                 <div className="text-muted-foreground">
-                  Showing total visitors for the last 6 months. This is just
-                  some random text to test the layout. It spans multiple lines
-                  and should wrap around.
+                  Showing project task completion metrics for the last 6 months. 
+                  Track progress across different project types and team members.
                 </div>
               </div>
               <Separator />
@@ -735,22 +742,33 @@ function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
                     <SelectValue placeholder="Select a type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Table of Contents">
-                      Table of Contents
+                    <SelectItem value="Development">
+                      Development
                     </SelectItem>
-                    <SelectItem value="Executive Summary">
-                      Executive Summary
+                    <SelectItem value="Design">
+                      Design
                     </SelectItem>
-                    <SelectItem value="Technical Approach">
-                      Technical Approach
+                    <SelectItem value="Testing">
+                      Testing
                     </SelectItem>
-                    <SelectItem value="Design">Design</SelectItem>
-                    <SelectItem value="Capabilities">Capabilities</SelectItem>
-                    <SelectItem value="Focus Documents">
-                      Focus Documents
+                    <SelectItem value="Infrastructure">
+                      Infrastructure
                     </SelectItem>
-                    <SelectItem value="Narrative">Narrative</SelectItem>
-                    <SelectItem value="Cover Page">Cover Page</SelectItem>
+                    <SelectItem value="Security">
+                      Security
+                    </SelectItem>
+                    <SelectItem value="Optimization">
+                      Optimization
+                    </SelectItem>
+                    <SelectItem value="Documentation">
+                      Documentation
+                    </SelectItem>
+                    <SelectItem value="Deployment">
+                      Deployment
+                    </SelectItem>
+                    <SelectItem value="Review">
+                      Review
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -763,35 +781,11 @@ function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
                   <SelectContent>
                     <SelectItem value="Done">Done</SelectItem>
                     <SelectItem value="In Progress">In Progress</SelectItem>
+                    <SelectItem value="In Process">In Process</SelectItem>
                     <SelectItem value="Not Started">Not Started</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="target">Target</Label>
-                <Input id="target" defaultValue={item.target} />
-              </div>
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="limit">Limit</Label>
-                <Input id="limit" defaultValue={item.limit} />
-              </div>
-            </div>
-            <div className="flex flex-col gap-3">
-              <Label htmlFor="reviewer">Reviewer</Label>
-              <Select defaultValue={item.reviewer}>
-                <SelectTrigger id="reviewer" className="w-full">
-                  <SelectValue placeholder="Select a reviewer" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Eddie Lake">Eddie Lake</SelectItem>
-                  <SelectItem value="Jamik Tashpulatov">
-                    Jamik Tashpulatov
-                  </SelectItem>
-                  <SelectItem value="Emily Whalen">Emily Whalen</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </form>
         </div>
