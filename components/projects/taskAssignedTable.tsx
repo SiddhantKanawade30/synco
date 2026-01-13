@@ -13,7 +13,7 @@ import {
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown, MoreHorizontal, Timer, HelpCircle, Circle, XCircle, CheckCircle, ArrowUp, ArrowDown, ArrowRight } from "lucide-react"
+import { ArrowUpDown, ChevronDown, MoreHorizontal, Timer, HelpCircle, Circle, XCircle, CheckCircle, ArrowUp, ArrowDown, ArrowRight, Bug, AlertCircle, Clock } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -35,6 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { issuesData, type Issue } from "../issues-data"
 
 const data: Payment[] = [
   {
@@ -507,12 +508,15 @@ export type Payment = {
   id: string
   task: string
   title: string
-  status: "todo" | "in-progress" | "backlog" | "done" | "canceled"
+  status: "todo" | "in-progress" | "backlog" | "done" | "canceled" | "open" | "resolved" | "closed"
   priority: "low" | "medium" | "high"
   email: string
+  projectName?: string
 }
 
-export const columns: ColumnDef<Payment>[] = [
+export type UnifiedData = Payment | Issue
+
+export const columns: ColumnDef<UnifiedData>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -553,6 +557,11 @@ export const columns: ColumnDef<Payment>[] = [
     cell: ({ row }) => <div className="font-medium">{row.getValue("task")}</div>,
   },
   {
+    accessorKey: "id",
+    header: "ID",
+    cell: ({ row }) => <div className="text-sm text-muted-foreground">{row.getValue("id")}</div>,
+  },
+  {
     accessorKey: "title",
     header: ({ column }) => {
       return (
@@ -565,7 +574,31 @@ export const columns: ColumnDef<Payment>[] = [
         </Button>
       )
     },
-    cell: ({ row }) => <div>{row.getValue("title")}</div>,
+    cell: ({ row }) => {
+      const id = row.getValue("id") as string
+      const title = row.getValue("title") as string
+      return (
+        <a 
+          href={`/issues/${id}`}
+          className="font-medium text-primary hover:underline cursor-pointer"
+        >
+          {title}
+        </a>
+      )
+    },
+  },
+  {
+    accessorKey: "projectName",
+    header: "Project",
+    cell: ({ row }) => {
+      const projectName = row.getValue("projectName") as string
+      return projectName ? (
+        <div className="font-medium">{projectName}</div>
+      ) : (
+        <div className="text-muted-foreground">-</div>
+      )
+    },
+    enableHiding: false,
   },
   {
     accessorKey: "status",
@@ -584,6 +617,12 @@ export const columns: ColumnDef<Payment>[] = [
             return <XCircle className="h-4 w-4 text-red-600" />
           case "done":
             return <CheckCircle className="h-4 w-4 text-green-600" />
+          case "open":
+            return <Bug className="h-4 w-4 text-red-600" />
+          case "resolved":
+            return <CheckCircle className="h-4 w-4 text-green-600" />
+          case "closed":
+            return <AlertCircle className="h-4 w-4 text-gray-600" />
           default:
             return <Circle className="h-4 w-4 text-gray-400" />
         }
@@ -683,7 +722,7 @@ export const columns: ColumnDef<Payment>[] = [
   },
 ]
 
-export function DataTableDemo({ filterType = "assigned" }: { filterType?: string }) {
+export function DataTableDemo({ filterType = "assigned", dataSource = "tasks", showProjectColumn = false }: { filterType?: string; dataSource?: string; showProjectColumn?: boolean }) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
@@ -694,25 +733,52 @@ export function DataTableDemo({ filterType = "assigned" }: { filterType?: string
   const [statusFilter, setStatusFilter] = React.useState<string>("")
   const [priorityFilter, setPriorityFilter] = React.useState<string>("")
 
-  // Filter data based on filterType
+  // Filter data based on filterType and dataSource
   const getFilteredData = () => {
-    switch (filterType) {
-      case "assigned":
-        return data.filter(task => task.status === "in-progress" || task.status === "todo")
-      case "created":
-        return data.filter(task => task.status === "backlog")
-      case "completed":
-        return data.filter(task => task.status === "done")
-      default:
-        return data
+    const sourceData = dataSource === "issues" ? issuesData : data
+    
+    if (dataSource === "issues") {
+      switch (filterType) {
+        case "assigned":
+          return (sourceData as Issue[]).filter(issue => issue.status === "open" || issue.status === "in-progress")
+        case "created":
+          return (sourceData as Issue[]).filter(issue => issue.status === "open")
+        case "completed":
+          return (sourceData as Issue[]).filter(issue => issue.status === "resolved" || issue.status === "closed")
+        default:
+          return sourceData
+      }
+    } else {
+      switch (filterType) {
+        case "assigned":
+          return (sourceData as Payment[]).filter(task => task.status === "in-progress" || task.status === "todo")
+        case "created":
+          return (sourceData as Payment[]).filter(task => task.status === "backlog")
+        case "completed":
+          return (sourceData as Payment[]).filter(task => task.status === "done")
+        default:
+          return sourceData
+      }
     }
   }
 
   const filteredData = getFilteredData()
 
+  // Create dynamic columns based on showProjectColumn prop
+  const dynamicColumns = React.useMemo(() => {
+    const baseColumns = [...columns]
+    
+    if (!showProjectColumn) {
+      // Remove project column if showProjectColumn is false
+      return baseColumns.filter(col => col.id !== "projectName")
+    }
+    
+    return baseColumns
+  }, [showProjectColumn])
+
   const table = useReactTable({
     data: filteredData,
-    columns,
+    columns: dynamicColumns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
@@ -758,21 +824,40 @@ export function DataTableDemo({ filterType = "assigned" }: { filterType?: string
             <DropdownMenuItem onClick={() => setStatusFilter("")}>
               All
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setStatusFilter("todo")}>
-              Todo
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setStatusFilter("in-progress")}>
-              In Progress
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setStatusFilter("backlog")}>
-              Backlog
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setStatusFilter("done")}>
-              Done
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setStatusFilter("canceled")}>
-              Canceled
-            </DropdownMenuItem>
+            {dataSource === "issues" ? (
+              <>
+                <DropdownMenuItem onClick={() => setStatusFilter("open")}>
+                  Open
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter("in-progress")}>
+                  In Progress
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter("resolved")}>
+                  Resolved
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter("closed")}>
+                  Closed
+                </DropdownMenuItem>
+              </>
+            ) : (
+              <>
+                <DropdownMenuItem onClick={() => setStatusFilter("todo")}>
+                  Todo
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter("in-progress")}>
+                  In Progress
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter("backlog")}>
+                  Backlog
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter("done")}>
+                  Done
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter("canceled")}>
+                  Canceled
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
         <DropdownMenu>

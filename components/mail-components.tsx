@@ -185,7 +185,7 @@ export function MailList({ selectedEmail, onSelectEmail }: {
             placeholder="Search emails..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 border-neutral-300"
           />
         </div>
         <div className="flex gap-2 p-2 bg-muted/50 rounded-lg">
@@ -245,7 +245,7 @@ export function MailList({ selectedEmail, onSelectEmail }: {
                   key={tag} 
                   variant="secondary" 
                   className={`text-xs ${
-                    (tag === 'work' || tag === 'project') ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : ''
+                    (tag === 'work' || tag === 'project') ? 'bg-blue-100 text-blue-800' : ''
                   }`}
                 >
                   {tag}
@@ -340,7 +340,7 @@ export function MailViewer({ email, onClose }: {
             placeholder="Type your reply..."
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
-            className="flex-1"
+            className="flex-1 border-neutral-300"
           />
           <Button size="icon" disabled={!replyText.trim()}>
             <IconSend className="size-4" />

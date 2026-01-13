@@ -3,22 +3,16 @@
 import * as React from "react"
 import Link from "next/link"
 import {
-  IconCamera,
-  IconChartBar,
-  IconDashboard,
-  IconDatabase,
-  IconFileAi,
-  IconFileDescription,
-  IconFileWord,
+  IconPlus,
   IconFolder,
+  IconBug,
+  IconChevronDown,
+  IconDashboard,
+  IconChartBar,
+  IconDatabase,
   IconHelp,
   IconInnerShadowTop,
-  IconListDetails,
-  IconReport,
-  IconSearch,
   IconSettings,
-  IconUsers,
-  IconBug,
 } from "@tabler/icons-react"
 
 import { NavDocuments } from "@/components/nav-documents"
@@ -26,6 +20,9 @@ import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { CreateProjectForm } from "@/components/create-project-form"
+import { CreateIssueForm } from "@/components/create-issue-form"
+import { TeamMember, teamMembers } from "@/lib/team-data"
 import {
   Sidebar,
   SidebarContent,
@@ -35,6 +32,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 const data = {
   user: {
@@ -101,7 +100,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <span className="text-base font-semibold">Acme Inc.</span>
               </Link>
             </SidebarMenuButton>
-            <ThemeToggle />
+            {/* <ThemeToggle /> */}
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>

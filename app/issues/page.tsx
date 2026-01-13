@@ -1,11 +1,23 @@
+"use client"
+
 import { AppSidebar } from "@/components/app-sidebar"
+import { DataTableDemo } from "@/components/projects/taskAssignedTable"
 import { SiteHeader } from "@/components/site-header"
+import { Button } from "@/components/ui/button"
 import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
+import { useState } from "react"
 
-export default function IssuesPage() {
+export default function ProjectsPage() {
+  const [activeFilter, setActiveFilter] = useState("assigned")
+
+  const getFilteredData = () => {
+    // This will be passed to DataTableDemo to filter the data
+    return activeFilter
+  }
+
   return (
     <SidebarProvider
       style={
@@ -21,26 +33,32 @@ export default function IssuesPage() {
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-              <div className="px-4 lg:px-6">
-                <h1 className="text-3xl font-bold tracking-tight">My Issues</h1>
-                <p className="text-muted-foreground">
-                  Track and manage all your issues and bugs in one place.
-                </p>
+              <div className="px-4 lg:px-6 flex gap-2">
+                <Button 
+                  variant={activeFilter === "assigned" ? "default" : "dashed"}
+                  onClick={() => setActiveFilter("assigned")}
+                  className="transition-all duration-300 ease-in-out"
+                >
+                  Assigned
+                </Button>
+                <Button 
+                  variant={activeFilter === "created" ? "default" : "dashed"}
+                  onClick={() => setActiveFilter("created")}
+                  className="transition-all duration-300 ease-in-out"
+                >
+                  Created
+                </Button>
+                <Button 
+                  variant={activeFilter === "completed" ? "default" : "dashed"}
+                  onClick={() => setActiveFilter("completed")}
+                  className="transition-all duration-300 ease-in-out"
+                >
+                  Completed
+                </Button>
               </div>
-              {/* 
-                Add your issues components here:
-                - Issues table component
-                - Issue creation form
-                - Issue filters and search
-                - Issue details view
-                - Issue status management
-              */}
               <div className="px-4 lg:px-6">
-                <div className="rounded-lg border p-8 text-center">
-                  <h3 className="text-lg font-semibold">Issues Dashboard</h3>
-                  <p className="text-muted-foreground mt-2">
-                    Your issues components will go here
-                  </p>
+                <div className="transition-all duration-500 ease-in-out">
+                  <DataTableDemo key={activeFilter} filterType={activeFilter} dataSource="issues" showProjectColumn={true} />
                 </div>
               </div>
             </div>
