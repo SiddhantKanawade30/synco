@@ -27,7 +27,7 @@ export async function POST(req: Request){
         return Response.json({error: "Server configuration error"}, {status: 500})
     }
 
-    const token = jwt.sign({id: existingUser.id}, jwtSecret, {expiresIn: "1h"})
+    const token = jwt.sign({id: existingUser.id}, jwtSecret)
 
     return Response.json({token}, {status: 200})
 }
