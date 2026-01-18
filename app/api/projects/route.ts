@@ -33,3 +33,24 @@ export async function POST(req: Request){
     }
     
 }
+
+export async function GET(request: Request) {
+    const auth = getUserFromRequest(request);
+
+    if(!auth || !auth.userId){
+        return new Response("Unauthorized - Invalid token", {status: 401});
+    }
+
+    try{
+        const projects = await prisma.project.findMany({
+            where: {
+                ownerId: auth.userId,
+            },
+        });
+
+        return Response.json(projects);
+    }catch(error){
+        console.error("Error fetching projects:", error);
+        return new Response("Internal Server Error", {status: 500});
+    }
+}

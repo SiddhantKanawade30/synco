@@ -21,6 +21,12 @@ enum IssueStatus {
   BACKLOG
 }
 
+enum ProjectStatus {
+  ACTIVE
+  INACTIVE
+  COMPLETED
+}
+
 enum ProjectRole {
   OWNER
   ADMIN
@@ -60,6 +66,8 @@ model Project {
 
   members ProjectMember[]
   issues Issue[]
+
+  status ProjectStatus @default(ACTIVE)
 }
 
 model ProjectMember {
