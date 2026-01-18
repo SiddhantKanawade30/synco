@@ -1,4 +1,8 @@
+"use client"
+
 import { GalleryVerticalEnd } from "lucide-react"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -15,9 +19,45 @@ export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError("")
+
+    const formData = new FormData(e.currentTarget)
+    const name = formData.get("name") as string
+    const email = formData.get("email") as string
+    const password = formData.get("password") as string
+
+    try {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, email, password }),
+      })
+
+      if (response.ok) {
+        router.push("/signin?message=Account created successfully")
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || "Failed to create account")
+      }
+    } catch (error) {
+      setError("Network error. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <form>
+      <form onSubmit={handleSubmit}>
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
             <a
@@ -35,9 +75,21 @@ export function SignupForm({
             </FieldDescription>
           </div>
           <Field>
+            <FieldLabel htmlFor="name">Name</FieldLabel>
+            <Input
+              id="name"
+              name="name"
+              type="text"
+              placeholder="John Doe"
+              required
+              className="border border-neutral-300"
+            />
+          </Field>
+          <Field>
             <FieldLabel htmlFor="email">Email</FieldLabel>
             <Input
               id="email"
+              name="email"
               type="email"
               placeholder="m@example.com"
               required
@@ -45,7 +97,23 @@ export function SignupForm({
             />
           </Field>
           <Field>
-            <Button type="submit">Create Account</Button>
+            <FieldLabel htmlFor="password">Password</FieldLabel>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="********"
+              required
+              className="border border-neutral-300"
+            />
+          </Field>
+          {error && (
+            <div className="text-red-500 text-sm text-center">{error}</div>
+          )}
+          <Field>
+            <Button type="submit" disabled={isLoading} className="w-full">
+              {isLoading ? "Creating Account..." : "Create Account"}
+            </Button>
           </Field>
           <FieldSeparator>Or</FieldSeparator>
           <Field className="grid gap-4 sm:grid-cols-2">
