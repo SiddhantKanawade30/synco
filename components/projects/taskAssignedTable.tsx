@@ -766,7 +766,7 @@ export function DataTableDemo({
         case "completed":
           return (sourceData as Issue[]).filter(issue => issue.status === "resolved" || issue.status === "closed")
         default:
-          return sourceData
+          return sourceData as Issue[]
       }
     } else {
       switch (filterType) {
@@ -777,7 +777,7 @@ export function DataTableDemo({
         case "completed":
           return (sourceData as Payment[]).filter(task => task.status === "done")
         default:
-          return sourceData
+          return sourceData as Payment[]
       }
     }
   }, [externalData, dataSource, filterType])
@@ -888,7 +888,7 @@ export function DataTableDemo({
   }, [dataSource, dynamicColumns, onIssueUpdated, projectId])
 
   const table = useReactTable({
-    data: filteredData,
+    data: filteredData as any,
     columns: columnsWithActions,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
