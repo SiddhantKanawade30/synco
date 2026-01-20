@@ -47,7 +47,6 @@ export function LoginForm({
 
       if (response.ok) {
         const data = await response.json()
-        // Store token as Bearer token in localStorage
         localStorage.setItem("authToken", `Bearer ${data.token}`)
         router.push("/dashboard")
       } else {
