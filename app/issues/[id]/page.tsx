@@ -60,5 +60,5 @@ export default function IssueDetail() {
     )
   }
 
-  return <IssueDetailComponent issue={issue} key={issue.id} />
+  return <IssueDetailComponent issue={issue} />
 }

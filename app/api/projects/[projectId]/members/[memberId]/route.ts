@@ -4,10 +4,10 @@ import { getUserFromRequest } from "@/src/lib/auth";
 
 
 
-export async function DELETE(req: NextRequest, {params} : {params: {projectId: string, memberId: string}}) {
+export async function DELETE(req: NextRequest, {params} : {params: Promise<{projectId: string, memberId: string}>}) {
  
     try{
-
+        const { projectId, memberId } = await params;
         const user = getUserFromRequest(req);
         if(!user){
             return new Response("Unauthorized", {status: 401});
@@ -15,7 +15,7 @@ export async function DELETE(req: NextRequest, {params} : {params: {projectId: s
         
         const project = await prisma.project.findUnique({
             where:{
-                id: params.projectId,
+                id: projectId,
             },
             select:{
                 ownerId: true,
@@ -32,7 +32,7 @@ export async function DELETE(req: NextRequest, {params} : {params: {projectId: s
 
         const deleteMember = await prisma.projectMember.delete({
             where: {
-                id: params.memberId
+                id: memberId
             }
         })
 
@@ -48,9 +48,10 @@ export async function DELETE(req: NextRequest, {params} : {params: {projectId: s
     
 }
 
-export async function PUT(req: NextRequest, {params} : {params: {projectId: string, memberId: string}}) {
+export async function PUT(req: NextRequest, {params} : {params: Promise<{projectId: string, memberId: string}>}) {
  
     try{
+        const { projectId, memberId } = await params;
         const user = getUserFromRequest(req);
         if(!user){
             return new Response("Unauthorized", {status: 401});
@@ -58,7 +59,7 @@ export async function PUT(req: NextRequest, {params} : {params: {projectId: stri
 
         const project = await prisma.project.findUnique({
             where:{
-                id : params.projectId,
+                id : projectId,
             },
             select:{
                 ownerId : true
@@ -74,6 +75,7 @@ export async function PUT(req: NextRequest, {params} : {params: {projectId: stri
         }
         
         // TODO: Update project member
+        return NextResponse.json({ message: "Member update not implemented yet" });
     }catch(error){
         console.error("Error updating project member:", error);
         return new Response("Internal Server Error", {status: 500});

@@ -3,8 +3,8 @@ import { prisma } from "@/src/lib/prisma";
 
 const allowedStatuses = ["ACTIVE", "ON_HOLD", "COMPLETED", "CANCELLED"];
 
-export async function PUT(request: NextRequest, { params }: { params: { projectId: string } }) {
-    const { projectId } = params;
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ projectId: string }> }) {
+    const { projectId } = await params;
     const { status } = await request.json();
     
     if (!allowedStatuses.includes(status)) {

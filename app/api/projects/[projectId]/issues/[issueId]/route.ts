@@ -2,8 +2,8 @@ import {prisma} from "@/src/lib/prisma";
 import {NextRequest, NextResponse} from "next/server";
 import {getUserFromRequest} from "@/src/lib/auth";
 
-export async function GET(request: NextRequest, { params }: { params: { projectId: string, issueId: string } }) {
-    const { projectId, issueId } = params;
+export async function GET(request: NextRequest, { params }: { params: Promise<{ projectId: string, issueId: string }> }) {
+    const { projectId, issueId } = await params;
     
     try {
 
@@ -32,9 +32,10 @@ export async function GET(request: NextRequest, { params }: { params: { projectI
     }
 }
 
-export async function PUT(request: NextRequest, { params } : { params: { projectId: string, issueId: string } }) {
+export async function PUT(request: NextRequest, { params } : { params: Promise<{ projectId: string, issueId: string }> }) {
     try{
-        const user = getUserFromRequest(request);
+        const { projectId, issueId } = await params;
+        const user = await getUserFromRequest(request);
         if(!user){
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
@@ -43,7 +44,7 @@ export async function PUT(request: NextRequest, { params } : { params: { project
         //check if the person who is editing is owner only 
         const projectOwner = await prisma.project.findUnique({
             where:{
-                id: params.projectId,
+                id: projectId,
                 ownerId: user.userId
             }
         })
@@ -55,7 +56,7 @@ export async function PUT(request: NextRequest, { params } : { params: { project
         //reassign issue
         const issue = await prisma.issue.update({
             where:{
-                id: params.issueId
+                id: issueId
             },
             data:{
                 assigneeId: reAssignData.assigneeId

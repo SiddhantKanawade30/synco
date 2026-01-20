@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Activity } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -30,7 +30,7 @@ export function CommentsInput({ onSubmit, activities }: CommentsInputProps) {
     }
   }
 
-  const comments = activities.filter(a => a.type === 'comment')
+  const comments = useMemo(() => activities.filter(a => a.type === 'comment'), [activities])
 
   return (
     <div className="space-y-6">

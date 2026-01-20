@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -29,16 +29,19 @@ export function ProjectOverview({ projectId, projectName }: ProjectOverviewProps
   const [newMemberEmail, setNewMemberEmail] = useState("")
 
   // Mock project data
-  const projectData = {
+  const projectData = useMemo(() => ({
     deadline: new Date("2026-03-15"),
     totalIssues: 24,
     solvedIssues: 18,
     lead: teamMembers[0], // Siddhant Kanawade
     status: "In Progress",
     priority: "High"
-  }
+  }), [])
 
-  const completionRate = Math.round((projectData.solvedIssues / projectData.totalIssues) * 100)
+  const completionRate = useMemo(() => 
+    Math.round((projectData.solvedIssues / projectData.totalIssues) * 100),
+    [projectData.solvedIssues, projectData.totalIssues]
+  )
 
   const handleAddTeamMember = () => {
     if (!newMemberEmail.trim()) return

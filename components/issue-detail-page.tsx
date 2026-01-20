@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo, useCallback, useEffect } from "react"
 import { Issue, Activity } from "@/lib/api"
 import { IssueHeader } from "./issue-header"
 import { SidebarProperties } from "./sidebar-properties"
@@ -23,7 +23,12 @@ export function IssueDetailComponent({ issue }: IssueDetailPageProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [localIssue, setLocalIssue] = useState<Issue>(issue)
 
-  const handleStatusChange = async (newStatus: Issue['status']) => {
+  // Sync localIssue with prop when issue changes
+  useEffect(() => {
+    setLocalIssue(issue)
+  }, [issue])
+
+  const handleStatusChange = useCallback(async (newStatus: Issue['status']) => {
     try {
       // Optimistic update
       setLocalIssue(prev => prev ? { ...prev, status: newStatus } : issue)
@@ -33,16 +38,28 @@ export function IssueDetailComponent({ issue }: IssueDetailPageProps) {
       // Revert on error - but keep optimistic update for demo
       console.error("Failed to update status:", error)
     }
-  }
+  }, [issue])
 
-  const handleCommentSubmit = async (text: string) => {
+  const handleCommentSubmit = useCallback(async (text: string) => {
     try {
       // API call would go here
       // await addComment(issue.id, text)
     } catch (error) {
       console.error("Failed to add comment:", error)
     }
-  }
+  }, [])
+
+  const handleEditToggle = useCallback(() => {
+    setIsEditing(prev => !prev)
+  }, [])
+
+  const commentActivities = useMemo(() => {
+    return localIssue.activity.filter(a => a.type === 'comment')
+  }, [localIssue.activity])
+
+  const descriptionParagraphs = useMemo(() => {
+    return localIssue.description.split('\n')
+  }, [localIssue.description])
 
   return (
     <SidebarProvider>
@@ -72,14 +89,14 @@ export function IssueDetailComponent({ issue }: IssueDetailPageProps) {
                 <IssueHeader 
                   issue={localIssue} 
                   isEditing={isEditing}
-                  onEditToggle={() => setIsEditing(!isEditing)}
+                  onEditToggle={handleEditToggle}
                 />
                 
                 {/* Description */}
                 <div className="bg-card rounded-lg border p-6">
                   <h2 className="text-lg font-semibold mb-4">Description</h2>
                   <div className="prose prose-sm max-w-none text-muted-foreground">
-                    {localIssue.description.split('\n').map((paragraph, index) => (
+                    {descriptionParagraphs.map((paragraph, index) => (
                       <p key={index} className="mb-4 last:mb-0">
                         {paragraph}
                       </p>
@@ -116,7 +133,7 @@ export function IssueDetailComponent({ issue }: IssueDetailPageProps) {
                 {/* Comments */}
                 <CommentsInput 
                   onSubmit={handleCommentSubmit}
-                  activities={localIssue.activity.filter(a => a.type === 'comment')}
+                  activities={commentActivities}
                 />
               </div>
 

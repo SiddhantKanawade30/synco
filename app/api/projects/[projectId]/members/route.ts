@@ -2,7 +2,7 @@ import {NextRequest, NextResponse} from "next/server";
 import {prisma} from "@/src/lib/prisma";
 import { getUserFromRequest } from "@/src/lib/auth";
 
-export async function GET(req: NextRequest, {params}: {params: {projectId: string}}){
+export async function GET(req: NextRequest, {params}: {params: Promise<{projectId: string}>}){
     const auth = getUserFromRequest(req);
     
     if(!auth || !auth.userId){
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest, {params}: {params: {projectId: strin
 }
 
 
-export async function POST(req: NextRequest, {params}: {params: {projectId: string}}) {
+export async function POST(req: NextRequest, {params}: {params: Promise<{projectId: string}>}) {
     
     try{
         const {projectId} = await params;

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { ProjectsTable } from "@/components/projects-table"
 import { SiteHeader } from "@/components/site-header"
@@ -42,7 +42,7 @@ export default function ProjectsPage() {
     hasMore: false
   })
 
-  const fetchProjects = async (page: number = 1, append: boolean = false) => {
+  const fetchProjects = useCallback(async (page: number = 1, append: boolean = false) => {
     setIsLoading(true)
     try {
       const authToken = localStorage.getItem("authToken")
@@ -75,11 +75,11 @@ export default function ProjectsPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchProjects()
-  }, [])
+  }, [fetchProjects])
 
   const handleCreateProject = async(project: {
     name: string

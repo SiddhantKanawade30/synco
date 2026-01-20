@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, Plus } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
-import { TeamMember, teamMembers } from "@/lib/team-data"
+import { TeamMember as OriginalTeamMember, teamMembers } from "@/lib/team-data"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 import { Check } from "lucide-react"
 
@@ -20,49 +20,106 @@ interface CreateIssueFormProps {
   onSubmit: (issue: {
     title: string
     description: string
-    assignee: TeamMember
+    assignee: OriginalTeamMember
     deadline: Date
+    priority: "LOW" | "MEDIUM" | "HIGH"
     project?: string
   }) => void
   trigger?: React.ReactNode
   showProjectSelection?: boolean
+  assignees?: Array<{
+    id: string
+    user: {
+      id: string
+      name: string
+      email: string
+    }
+  }>
 }
 
-export function CreateIssueForm({ onSubmit, trigger, showProjectSelection = false }: CreateIssueFormProps) {
+interface TeamMember {
+  id: string
+  user: {
+    name: string
+    email: string
+  }
+}
+
+export function CreateIssueForm({ onSubmit, trigger, showProjectSelection = false, assignees = [] }: CreateIssueFormProps) {
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [assignee, setAssignee] = useState<TeamMember | null>(null)
+  const [assignee, setAssignee] = useState<OriginalTeamMember | null>(null)
   const [deadline, setDeadline] = useState<Date>()
+  const [priority, setPriority] = useState<"LOW" | "MEDIUM" | "HIGH">("MEDIUM")
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedProject, setSelectedProject] = useState("project-1")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!title || !description || !assignee || !deadline) return
+    e.stopPropagation()
+    
+    if (isSubmitting) return
+    
+    try {
+      console.log("Submit clicked - form data:", { title, description, assignee, deadline, priority })
+      
+      if (!title || !description || !assignee || !deadline) {
+        console.log("Validation failed - missing fields")
+        return
+      }
 
-    onSubmit({
-      title,
-      description,
-      assignee,
-      deadline,
-      ...(showProjectSelection && { project: selectedProject })
-    })
+      setIsSubmitting(true)
 
-    // Reset form
-    setTitle("")
-    setDescription("")
-    setAssignee(null)
-    setDeadline(undefined)
-    setOpen(false)
+      console.log("Calling onSubmit with:", {
+        title,
+        description,
+        assignee,
+        deadline,
+        priority,
+        ...(showProjectSelection && { project: selectedProject })
+      })
+
+      await onSubmit({
+        title,
+        description,
+        assignee,
+        deadline,
+        priority,
+        ...(showProjectSelection && { project: selectedProject })
+      })
+
+      // Reset form
+      setTitle("")
+      setDescription("")
+      setAssignee(null)
+      setDeadline(undefined)
+      setPriority("MEDIUM")
+      setOpen(false)
+    } catch (error) {
+      console.error("Error creating issue:", error)
+      // Don't close the dialog on error so user can try again
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  const filteredTeamMembers = searchTerm
-    ? teamMembers.filter(member => 
-        member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        member.email.toLowerCase().includes(searchTerm.toLowerCase())
+  // Convert assignees to OriginalTeamMember format
+  const displayMembers = assignees.length > 0 ? assignees.map((member: any) => ({
+    id: member.user?.id ?? member.id,
+    name: member.user?.name || 'Unknown',
+    email: member.user?.email || 'unknown@example.com',
+    avatar: member.user?.image || "",
+    role: "Member"
+  })) : teamMembers
+
+  const filteredTeamMembers = searchTerm && searchTerm.trim() !== ""
+    ? displayMembers.filter(member => 
+        member.name.toLowerCase().includes(searchTerm.toLowerCase().trim()) ||
+        member.email.toLowerCase().includes(searchTerm.toLowerCase().trim())
       )
-    : teamMembers
+    : displayMembers
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -134,29 +191,54 @@ export function CreateIssueForm({ onSubmit, trigger, showProjectSelection = fals
                   <CalendarIcon className="ml-auto h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-full p-0">
+              <PopoverContent className="w-full p-0 z-50" align="start">
                 <Command>
                   <CommandInput 
                     placeholder="Search team members..." 
                     onValueChange={setSearchTerm}
+                    className="text-foreground"
                   />
-                  <CommandEmpty>No team member found.</CommandEmpty>
+                  <CommandEmpty className="text-muted-foreground">No team member found.</CommandEmpty>
                   <CommandGroup>
                     {filteredTeamMembers.map((member) => (
                       <CommandItem
                         key={member.id}
                         value={member.id}
+                        style={{
+                          cursor: 'pointer',
+                          backgroundColor: 'transparent',
+                          color: 'hsl(var(--foreground))',
+                          pointerEvents: 'auto'
+                        }}
+                        className="rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
                         onSelect={() => {
+                          console.log("CommandItem clicked - member:", member)
                           setAssignee(member)
                           setSearchTerm("")
                         }}
+                        onClick={() => {
+                          console.log("onClick - member:", member)
+                          setAssignee(member)
+                          setSearchTerm("")
+                        }}
+                        onMouseDown={() => {
+                          console.log("Mouse down on member:", member)
+                        }}
                       >
                         <div className="flex items-center gap-2">
-                          <img 
-                            src={member.avatar} 
-                            alt={member.name}
-                            className="h-6 w-6 rounded-full"
-                          />
+                          {member.avatar ? (
+                            <img 
+                              src={member.avatar} 
+                              alt={member.name}
+                              className="h-6 w-6 rounded-full"
+                            />
+                          ) : (
+                            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                              <span className="text-sm font-medium">
+                                {member.name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
                           <div>
                             <div className="font-medium">{member.name}</div>
                             <div className="text-sm text-muted-foreground">{member.email}</div>
@@ -171,6 +253,19 @@ export function CreateIssueForm({ onSubmit, trigger, showProjectSelection = fals
                 </Command>
               </PopoverContent>
             </Popover>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Priority</Label>
+            <select
+              value={priority}
+              onChange={(e) => setPriority(e.target.value as "LOW" | "MEDIUM" | "HIGH")}
+              className="flex h-9 w-full rounded-md border border-neutral-600 bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+            >
+              <option value="LOW">Low</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="HIGH">High</option>
+            </select>
           </div>
 
           <div className="space-y-2">
@@ -200,11 +295,11 @@ export function CreateIssueForm({ onSubmit, trigger, showProjectSelection = fals
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!title || !description || !assignee || !deadline}>
-              Create Issue
+            <Button type="submit" disabled={!title || !description || !assignee || !deadline || isSubmitting}>
+              {isSubmitting ? "Creating..." : "Create Issue"}
             </Button>
           </div>
         </form>

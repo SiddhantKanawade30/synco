@@ -30,20 +30,27 @@ export function CreateProjectForm({ onSubmit, trigger, isLoading }: CreateProjec
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name || !deadline) return
+    e.stopPropagation()
+    
+    try {
+      if (!name || !deadline) return
 
-    await onSubmit({
-      name,
-      deadline,
-      members
-    })
+      await onSubmit({
+        name,
+        deadline,
+        members
+      })
 
-    // Reset form
-    setName("")
-    setDeadline(undefined)
-    setMemberEmail("")
-    setMembers([])
-    setOpen(false)
+      // Reset form
+      setName("")
+      setDeadline(undefined)
+      setMemberEmail("")
+      setMembers([])
+      setOpen(false)
+    } catch (error) {
+      console.error("Error creating project:", error)
+      // Don't close dialog on error so user can try again
+    }
   }
 
   const handleAddMember = () => {

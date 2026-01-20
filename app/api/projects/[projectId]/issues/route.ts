@@ -4,9 +4,9 @@ import { NextRequest } from "next/server";
 
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ projectId: string }> }){
-    const {title, description, priority, status, assigneeId, deadline} = await req.json();
-    
     try{
+		const {title, description, priority, status, assigneeId, deadline} = await req.json();
+		console.log("Creating issue with data:", {title, description, priority, status, assigneeId, deadline})
 
         const user = getUserFromRequest(req);
 
@@ -14,13 +14,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
             return new Response("Unauthorized", {status: 401});
         }
 
+        const resolvedParams = await params;
+        const projectId = resolvedParams.projectId
+        console.log("Resolved projectId:", projectId)
+
         const project = await prisma.project.findUnique({
             where: {
-                id: (await params).projectId
+                id: projectId
             },
             select: {
-                id: true,
-                ownerId: true
+                ownerId: true,
+                members: {
+                    select: {
+                        userId: true
+                    }
+                }
             }
         });
 
@@ -28,7 +36,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
             return new Response("Project not found", {status: 404});
         }
 
-        if(project.ownerId !== user.userId){
+        const isOwnerOrMember = project.ownerId === user.userId || project.members.some(m => m.userId === user.userId)
+        if(!isOwnerOrMember){
             return new Response("Unauthorized", {status: 401});
         }
 
@@ -40,7 +49,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
                 status: status || "OPEN",
                 assigneeId,
                 deadline: deadline ? new Date(deadline) : new Date(),
-                projectId: (await params).projectId,
+                projectId,
                 creatorId: user.userId
             }
         })
@@ -60,11 +69,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ proj
             return new Response("Unauthorized", {status: 401});
         }
 
+        const resolvedParams = await params;
+        console.log("GET issues - projectId:", resolvedParams.projectId)
+
         //check if project exists and user is the owner or member
         
         const isOwnerOrMember = await prisma.project.findUnique({
             where: {
-                id: (await params).projectId
+                id: resolvedParams.projectId
             },
             select: {
                 ownerId: true,
@@ -86,7 +98,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ proj
         
         const issues = await prisma.issue.findMany({
             where: {
-                projectId: (await params).projectId
+                projectId: resolvedParams.projectId
             },
             orderBy: {
                 createdAt: "desc"
