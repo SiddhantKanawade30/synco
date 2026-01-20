@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
+import { io, type Socket } from "socket.io-client"
 import {
   SidebarInset,
   SidebarProvider,
@@ -22,11 +23,40 @@ interface IssueDetailPageProps {
 export function IssueDetailComponent({ issue }: IssueDetailPageProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [localIssue, setLocalIssue] = useState<Issue>(issue)
+  const [socket, setSocket] = useState<Socket | null>(null)
 
   // Sync localIssue with prop when issue changes
   useEffect(() => {
     setLocalIssue(issue)
   }, [issue])
+
+  // Socket.IO connection for realtime chat/activity updates
+  useEffect(() => {
+    const authToken = localStorage.getItem("authToken")
+    if (!authToken) return
+
+    const s = io({
+      auth: { token: authToken.startsWith("Bearer ") ? authToken : `Bearer ${authToken}` },
+    })
+
+    s.on("connect", () => {
+      s.emit("issue:join", { issueId: issue.id })
+    })
+
+    s.on("activity:new", (activity: Activity) => {
+      setLocalIssue((prev) => ({
+        ...prev,
+        activity: [...prev.activity, activity],
+      }))
+    })
+
+    setSocket(s)
+
+    return () => {
+      s.disconnect()
+      setSocket(null)
+    }
+  }, [issue.id])
 
   const handleStatusChange = useCallback(async (newStatus: Issue['status']) => {
     try {
@@ -42,19 +72,20 @@ export function IssueDetailComponent({ issue }: IssueDetailPageProps) {
 
   const handleCommentSubmit = useCallback(async (text: string) => {
     try {
-      // API call would go here
-      // await addComment(issue.id, text)
+      // For now, comments UI is used as realtime chat between creator & assignee.
+      if (!socket) return
+      socket.emit("chat:send", { issueId: issue.id, text })
     } catch (error) {
       console.error("Failed to add comment:", error)
     }
-  }, [])
+  }, [issue.id, socket])
 
   const handleEditToggle = useCallback(() => {
     setIsEditing(prev => !prev)
   }, [])
 
   const commentActivities = useMemo(() => {
-    return localIssue.activity.filter(a => a.type === 'comment')
+    return localIssue.activity.filter(a => a.type === 'comment' || a.type === 'chats')
   }, [localIssue.activity])
 
   const descriptionParagraphs = useMemo(() => {

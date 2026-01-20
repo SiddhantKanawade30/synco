@@ -13,66 +13,82 @@ export function ActivityTimeline({ activities }: ActivityTimelineProps) {
     switch (type) {
       case 'created':
         return (
-          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-            <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
+          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
           </div>
         )
       case 'comment':
         return (
-          <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-            <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-              <div className="w-2 h-2 bg-white rounded-full"></div>
+          <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+            <div className="w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
+              <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+            </div>
+          </div>
+        )
+      case 'chats':
+        return (
+          <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+            <div className="w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
+              <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
             </div>
           </div>
         )
       case 'status':
         return (
-          <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-            <div className="w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center">
-              <div className="w-2 h-2 bg-white rounded-full"></div>
+          <div className="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center">
+            <div className="w-3 h-3 bg-yellow-500 rounded-full flex items-center justify-center">
+              <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
             </div>
           </div>
         )
       case 'assigned':
         return (
-          <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-            <div className="w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center">
-              <div className="w-2 h-2 bg-white rounded-full"></div>
+          <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center">
+            <div className="w-3 h-3 bg-purple-500 rounded-full flex items-center justify-center">
+              <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
             </div>
           </div>
         )
       case 'closed':
         return (
-          <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-            <div className="w-4 h-4 bg-gray-500 rounded-full flex items-center justify-center">
-              <div className="w-2 h-2 bg-white rounded-full"></div>
+          <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center">
+            <div className="w-3 h-3 bg-gray-500 rounded-full flex items-center justify-center">
+              <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
             </div>
           </div>
         )
       default:
         return (
-          <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-            <div className="w-4 h-4 bg-gray-500 rounded-full"></div>
+          <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center">
+            <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
           </div>
         )
     }
   }
 
   const getActivityText = (activity: Activity) => {
-    switch (activity.type) {
-      case 'created':
-        return `${activity.author} created this issue`
-      case 'comment':
-        return `${activity.author} commented`
-      case 'status':
-        return `${activity.author} changed status: ${activity.text}`
-      case 'assigned':
-        return `${activity.author} assigned this to ${activity.text}`
-      case 'closed':
-        return `${activity.author} closed this issue`
-      default:
-        return activity.text
+    if (activity.type === 'created') {
+      return `${activity.author} created this issue`
     }
+
+    // For comments/chats, just show the author; message is shown below
+    if (activity.type === 'comment' || activity.type === 'chats') {
+      return activity.author
+    }
+
+    if (activity.type === 'status') {
+      return activity.author
+    }
+
+    if (activity.type === 'assigned') {
+      return activity.author
+    }
+
+    if (activity.type === 'closed') {
+      return activity.author
+    }
+
+    return activity.text
   }
 
   const formatTimestamp = (timestamp: string) => {
@@ -119,6 +135,12 @@ export function ActivityTimeline({ activities }: ActivityTimelineProps) {
               
               {/* Activity details */}
               {activity.type === 'comment' && (
+                <div className="bg-muted/50 rounded-lg p-4 border">
+                  <p className="text-sm">{activity.text}</p>
+                </div>
+              )}
+
+              {activity.type === 'chats' && (
                 <div className="bg-muted/50 rounded-lg p-4 border">
                   <p className="text-sm">{activity.text}</p>
                 </div>
