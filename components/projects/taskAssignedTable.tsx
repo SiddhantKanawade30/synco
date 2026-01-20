@@ -453,9 +453,27 @@ export type Payment = {
   priority: "low" | "medium" | "high"
   email: string
   projectName?: string
+  deadline?: string
 }
 
-export type UnifiedData = Payment | Issue
+export type UnifiedIssue = Issue & { deadline?: string }
+
+export type UnifiedData = Payment | UnifiedIssue
+
+const getApiIssueStatus = (uiStatus: Issue["status"]) => {
+  switch (uiStatus) {
+    case "open":
+      return "OPEN"
+    case "in-progress":
+      return "IN_PROGRESS"
+    case "resolved":
+      return "DONE"
+    case "closed":
+      return "REJECTED"
+    default:
+      return "OPEN"
+  }
+}
 
 export const columns: ColumnDef<UnifiedData>[] = [
   {
@@ -520,6 +538,20 @@ export const columns: ColumnDef<UnifiedData>[] = [
       )
     },
     enableHiding: false,
+  },
+  {
+    accessorKey: "deadline",
+    header: "Deadline",
+    cell: ({ row }) => {
+      const deadline = row.getValue("deadline") as string | undefined
+      if (!deadline) return <div className="text-muted-foreground">-</div>
+      const date = new Date(deadline)
+      return (
+        <div className="text-sm">
+          {date.toLocaleDateString()}
+        </div>
+      )
+    },
   },
   {
     accessorKey: "status",
@@ -630,26 +662,49 @@ export const columns: ColumnDef<UnifiedData>[] = [
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuLabel>Change Status</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => handleAction(() => console.log("Status changed to todo"))}>
-              <Circle className="h-4 w-4 mr-2 text-gray-400" />
-              Todo
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleAction(() => console.log("Status changed to in-progress"))}>
-              <Timer className="h-4 w-4 mr-2 text-blue-600" />
-              In Progress
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleAction(() => console.log("Status changed to backlog"))}>
-              <HelpCircle className="h-4 w-4 mr-2 text-gray-600" />
-              Backlog
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleAction(() => console.log("Status changed to done"))}>
-              <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-              Done
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleAction(() => console.log("Status changed to canceled"))}>
-              <XCircle className="h-4 w-4 mr-2 text-red-600" />
-              Canceled
-            </DropdownMenuItem>
+            {"projectId" in task ? (
+              <>
+                <DropdownMenuItem onClick={() => handleAction(() => console.log("Issue status: open"))}>
+                  <Circle className="h-4 w-4 mr-2 text-gray-400" />
+                  Open
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleAction(() => console.log("Issue status: in-progress"))}>
+                  <Timer className="h-4 w-4 mr-2 text-blue-600" />
+                  In Progress
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleAction(() => console.log("Issue status: resolved"))}>
+                  <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                  Resolved
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleAction(() => console.log("Issue status: closed"))}>
+                  <XCircle className="h-4 w-4 mr-2 text-red-600" />
+                  Closed
+                </DropdownMenuItem>
+              </>
+            ) : (
+              <>
+                <DropdownMenuItem onClick={() => handleAction(() => console.log("Status changed to todo"))}>
+                  <Circle className="h-4 w-4 mr-2 text-gray-400" />
+                  Todo
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleAction(() => console.log("Status changed to in-progress"))}>
+                  <Timer className="h-4 w-4 mr-2 text-blue-600" />
+                  In Progress
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleAction(() => console.log("Status changed to backlog"))}>
+                  <HelpCircle className="h-4 w-4 mr-2 text-gray-600" />
+                  Backlog
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleAction(() => console.log("Status changed to done"))}>
+                  <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                  Done
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleAction(() => console.log("Status changed to canceled"))}>
+                  <XCircle className="h-4 w-4 mr-2 text-red-600" />
+                  Canceled
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       )
@@ -657,7 +712,21 @@ export const columns: ColumnDef<UnifiedData>[] = [
   },
 ]
 
-export function DataTableDemo({ filterType = "assigned", dataSource = "tasks", showProjectColumn = false, data: externalData }: { filterType?: string; dataSource?: string; showProjectColumn?: boolean; data?: UnifiedData[] }) {
+export function DataTableDemo({
+  filterType = "assigned",
+  dataSource = "tasks",
+  showProjectColumn = false,
+  data: externalData,
+  projectId,
+  onIssueUpdated,
+}: {
+  filterType?: string
+  dataSource?: string
+  showProjectColumn?: boolean
+  data?: UnifiedData[]
+  projectId?: string
+  onIssueUpdated?: (issueId: string, newStatus: string) => void
+}) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
@@ -725,9 +794,102 @@ export function DataTableDemo({ filterType = "assigned", dataSource = "tasks", s
     return baseColumns
   }, [showProjectColumn])
 
+  const columnsWithActions = React.useMemo(() => {
+    if (dataSource !== "issues" || !projectId) return dynamicColumns
+
+    return dynamicColumns.map((col) => {
+      if (col.id !== "actions") return col
+
+      return {
+        ...col,
+        cell: ({ row }: any) => {
+          const issue = row.original as Issue
+          const [isOpen, setIsOpen] = React.useState(false)
+
+          const changeIssueStatus = async (next: Issue["status"]) => {
+            const authToken = localStorage.getItem("authToken")
+            if (!authToken) {
+              console.error("No auth token found")
+              return
+            }
+            const authorizationHeader = authToken.startsWith("Bearer ") ? authToken : `Bearer ${authToken}`
+
+            const res = await fetch(`/api/projects/${projectId}/issues/${issue.id}/status`, {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": authorizationHeader,
+              },
+              body: JSON.stringify({ status: getApiIssueStatus(next) }),
+            })
+
+            if (!res.ok) {
+              const text = await res.text().catch(() => "Unknown error")
+              console.error("Failed to update issue status:", text)
+              return
+            }
+
+            const updated = await res.json().catch(() => null)
+            onIssueUpdated?.(issue.id, updated?.status ?? getApiIssueStatus(next))
+          }
+
+          return (
+            <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="z-50">
+                <DropdownMenuLabel>Change Status</DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={async () => {
+                    await changeIssueStatus("open")
+                    setIsOpen(false)
+                  }}
+                >
+                  <Circle className="h-4 w-4 mr-2 text-gray-400" />
+                  Open
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={async () => {
+                    await changeIssueStatus("in-progress")
+                    setIsOpen(false)
+                  }}
+                >
+                  <Timer className="h-4 w-4 mr-2 text-blue-600" />
+                  In Progress
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={async () => {
+                    await changeIssueStatus("resolved")
+                    setIsOpen(false)
+                  }}
+                >
+                  <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                  Resolved
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={async () => {
+                    await changeIssueStatus("closed")
+                    setIsOpen(false)
+                  }}
+                >
+                  <XCircle className="h-4 w-4 mr-2 text-red-600" />
+                  Closed
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )
+        },
+      } as any
+    })
+  }, [dataSource, dynamicColumns, onIssueUpdated, projectId])
+
   const table = useReactTable({
     data: filteredData,
-    columns: dynamicColumns,
+    columns: columnsWithActions,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),

@@ -30,7 +30,7 @@ export function SiteHeader() {
               href="https://github.com/SiddhantKanawade30/loop-hackathon"
               rel="noopener noreferrer"
               target="_blank"
-              className="dark:text-foreground"
+              // className="dark:text-foreground"
             >
               GitHub
             </a>

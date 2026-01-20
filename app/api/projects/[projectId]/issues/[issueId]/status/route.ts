@@ -26,6 +26,11 @@ export async function PATCH(req: NextRequest, {params}: {params: Promise<{projec
             return Response.json({error: "Unauthorized"}, {status: 401});
         }
 
+        const actor = await prisma.user.findUnique({
+          where: { id: user.userId },
+          select: { name: true },
+        });
+
         const issue = await prisma.issue.findUnique({
             where: {
                 id: issueId,
@@ -95,8 +100,11 @@ export async function PATCH(req: NextRequest, {params}: {params: Promise<{projec
         // 🧾 Log activity
         await prisma.activity.create({
           data: {
-            type: "STATUS_CHANGE",
-            content: `${issue.status} → ${status}`,
+            // Convention:
+            // - status: status transitions
+            // - chats: chat messages (future)
+            type: "status",
+            content: `${actor?.name ?? "Someone"} changed issue status from ${issue.status} to ${status}`,
             issueId: issue.id,  
             userId: user.userId,    
           },

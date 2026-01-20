@@ -114,7 +114,10 @@ export async function GET(request: Request) {
 
         const projects = await prisma.project.findMany({
             where: {
-                ownerId: auth.userId,
+                OR: [
+                    { ownerId: auth.userId },
+                    { members: { some: { userId: auth.userId } } }
+                ]
             },
             include: {
                 members: {
@@ -132,7 +135,10 @@ export async function GET(request: Request) {
 
         const total = await prisma.project.count({
             where: {
-                ownerId: auth.userId,
+                OR: [
+                    { ownerId: auth.userId },
+                    { members: { some: { userId: auth.userId } } }
+                ]
             },
         });
 

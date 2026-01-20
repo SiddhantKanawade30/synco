@@ -72,6 +72,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ proj
         const resolvedParams = await params;
         console.log("GET issues - projectId:", resolvedParams.projectId)
 
+        const { searchParams } = new URL(req.url);
+        const filter = searchParams.get("filter") || "all"; // assigned | created | completed | all
+
         //check if project exists and user is the owner or member
         
         const isOwnerOrMember = await prisma.project.findUnique({
@@ -95,16 +98,36 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ proj
         if(isOwnerOrMember.ownerId !== user.userId && !isOwnerOrMember.members.some(member => member.userId === user.userId)){
             return new Response("Unauthorized", {status: 401});
         }
-        
+
+        // Base where clause
+        let whereClause: any = {
+          projectId: resolvedParams.projectId,
+        };
+
+        // Apply filter based on current user
+        if (filter === "assigned") {
+          whereClause.assigneeId = user.userId;
+        } else if (filter === "created") {
+          whereClause.creatorId = user.userId;
+        } else if (filter === "completed") {
+          whereClause.assigneeId = user.userId;
+          whereClause.status = { in: ["DONE", "REJECTED"] };
+        }
+
         const issues = await prisma.issue.findMany({
-            where: {
-                projectId: resolvedParams.projectId
+          where: whereClause,
+          orderBy: {
+            createdAt: "desc",
+          },
+          include: {
+            assignee: {
+              select: {
+                email: true,
+              },
             },
-            orderBy: {
-                createdAt: "desc"
-            }
+          },
         });
-        
+
         return Response.json(issues);
     }catch(error){
         console.error("Error fetching issues:", error);

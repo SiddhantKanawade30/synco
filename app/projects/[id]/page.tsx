@@ -62,7 +62,9 @@ export default function ProjectsPage({ params }: { params: Promise<{ id: string 
     }
   }
 
-  const issuesTableData: TableIssue[] = useMemo(() => {
+  type ProjectIssueRow = TableIssue & { deadline?: string }
+
+  const issuesTableData: ProjectIssueRow[] = useMemo(() => {
     return issues.map((issue) => {
       return {
         id: String(issue.id),
@@ -71,6 +73,7 @@ export default function ProjectsPage({ params }: { params: Promise<{ id: string 
         priority: toTablePriority(issue.priority),
         email: String(issue.assignee?.email ?? "-"),
         projectName: String(project?.name ?? "-"),
+        deadline: issue.deadline ? new Date(issue.deadline).toISOString() : undefined,
       }
     })
   }, [issues, project?.name])
@@ -175,7 +178,7 @@ export default function ProjectsPage({ params }: { params: Promise<{ id: string 
     }
   }, [projectId])
 
-  const fetchIssues = useCallback(async () => {
+  const fetchIssues = useCallback(async (filter: string) => {
     setIsIssuesLoading(true)
     const authToken = localStorage.getItem("authToken")
 
@@ -186,7 +189,7 @@ export default function ProjectsPage({ params }: { params: Promise<{ id: string 
     }
 
     try {
-      const response = await fetch(`/api/projects/${projectId}/issues`, {
+      const response = await fetch(`/api/projects/${projectId}/issues?filter=${filter}`, {
         headers: {
           "Authorization": authToken
         }
@@ -211,8 +214,8 @@ export default function ProjectsPage({ params }: { params: Promise<{ id: string 
 
   useEffect(() => {
     fetchProjectAndMembers()
-    fetchIssues()
-  }, [projectId, fetchProjectAndMembers, fetchIssues])
+    fetchIssues(activeFilter)
+  }, [projectId, activeFilter, fetchProjectAndMembers, fetchIssues])
 
   return (
     <SidebarProvider
@@ -226,13 +229,13 @@ export default function ProjectsPage({ params }: { params: Promise<{ id: string 
         <SiteHeader />
         <ErrorBoundary>
           <div className="flex flex-1 flex-col gap-4 p-4">
-            <div className="flex items-center justify-between">
+            {/* <div className="flex items-center justify-between">
               <h1 className="text-2xl font-bold">Project Details</h1>
               <CreateIssueForm
                 onSubmit={handleCreateIssue}
                 assignees={projectMembers}
               />
-            </div>
+            </div> */}
 
             <div className="grid gap-6">
               <div className="flex gap-2">
@@ -341,7 +344,17 @@ export default function ProjectsPage({ params }: { params: Promise<{ id: string 
                   {isIssuesLoading ? (
                     <div className="text-center py-8">Loading issues...</div>
                   ) : issuesTableData.length > 0 ? (
-                    <DataTableDemo filterType={activeFilter} dataSource="issues" data={issuesTableData} />
+                    <DataTableDemo
+                      filterType={activeFilter}
+                      dataSource="issues"
+                      data={issuesTableData}
+                      projectId={projectId}
+                      onIssueUpdated={(issueId, newStatus) => {
+                        setIssues((prev) =>
+                          prev.map((it) => (String(it.id) === String(issueId) ? { ...it, status: newStatus } : it)),
+                        )
+                      }}
+                    />
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
                       No issues found. Create your first issue above.
