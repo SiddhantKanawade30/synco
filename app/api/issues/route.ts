@@ -33,12 +33,60 @@ export async function GET(request: NextRequest){
         if(!user){
             return new NextResponse("Unauthorized - Invalid token", {status: 401});
         }
+        
+        // Get all issues where user is either assignee OR creator across all projects
         const issues = await prisma.issue.findMany({
             where:{
-                assigneeId: user?.userId
+                OR: [
+                    { assigneeId: user?.userId },
+                    { creatorId: user?.userId }
+                ]
+            },
+            include: {
+                assignee: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    }
+                },
+                creator: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    }
+                },
+                project: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                }
+            },
+            orderBy: {
+                createdAt: 'desc'
             }
         })
-        return NextResponse.json(issues);
+        
+        // Categorize issues based on user relationship and status
+        const categorizedIssues = {
+            assigned: issues.filter(issue => 
+                issue.assigneeId === user?.userId && 
+                (issue.status === 'OPEN' || issue.status === 'IN_PROGRESS')
+            ),
+            created: issues.filter(issue => 
+                issue.creatorId === user?.userId
+                // Show all issues created by user regardless of status
+            ),
+            completed: issues.filter(issue => 
+                (issue.assigneeId === user?.userId || issue.creatorId === user?.userId) && 
+                (issue.status === 'DONE' || issue.status === 'REJECTED')
+            ),
+            all: issues
+        }
+        
+        return NextResponse.json(categorizedIssues);
     } catch (error) {
         console.error("Error fetching issues:", error);
         return NextResponse.json({ error: "Failed to fetch issues" }, { status: 500 });

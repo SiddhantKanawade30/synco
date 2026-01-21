@@ -107,11 +107,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ proj
         // Apply filter based on current user
         if (filter === "assigned") {
           whereClause.assigneeId = user.userId;
+          whereClause.status = { in: ["OPEN", "IN_PROGRESS"] };
         } else if (filter === "created") {
           whereClause.creatorId = user.userId;
+          // Show all issues created by user regardless of status
         } else if (filter === "completed") {
-          whereClause.assigneeId = user.userId;
-          whereClause.status = { in: ["DONE", "REJECTED"] };
+          whereClause.OR = [
+            { assigneeId: user.userId, status: { in: ["DONE", "REJECTED"] } },
+            { creatorId: user.userId, status: { in: ["DONE", "REJECTED"] } }
+          ];
         }
 
         const issues = await prisma.issue.findMany({
@@ -122,7 +126,22 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ proj
           include: {
             assignee: {
               select: {
+                id: true,
+                name: true,
                 email: true,
+              },
+            },
+            creator: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            project: {
+              select: {
+                id: true,
+                name: true,
               },
             },
           },

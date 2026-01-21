@@ -62,7 +62,13 @@ export default function ProjectsPage({ params }: { params: Promise<{ id: string 
     }
   }
 
-  type ProjectIssueRow = TableIssue & { deadline?: string }
+  type ProjectIssueRow = TableIssue & { 
+  deadline?: string
+  creatorId?: string
+  assigneeId?: string
+  creator?: string
+  assignee?: string
+}
 
   const issuesTableData: ProjectIssueRow[] = useMemo(() => {
     return issues.map((issue) => {
@@ -74,6 +80,10 @@ export default function ProjectsPage({ params }: { params: Promise<{ id: string 
         email: String(issue.assignee?.email ?? "-"),
         projectName: String(project?.name ?? "-"),
         deadline: issue.deadline ? new Date(issue.deadline).toISOString() : undefined,
+        creatorId: issue.creatorId,
+        assigneeId: issue.assigneeId,
+        creator: issue.creator?.name || "Unknown",
+        assignee: issue.assignee?.name || "Unassigned",
       }
     })
   }, [issues, project?.name])

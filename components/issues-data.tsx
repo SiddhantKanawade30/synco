@@ -1,10 +1,14 @@
 export type Issue = {
   id: string
   title: string
-  status: "open" | "in-progress" | "resolved" | "closed"
+  status: "open" | "in-progress" | "resolved" | "closed" | "done"
   priority: "low" | "medium" | "high"
   email: string
   projectName: string
+  creatorId?: string
+  assigneeId?: string
+  creator?: string
+  assignee?: string
 }
 
 export const issuesData: Issue[] = [

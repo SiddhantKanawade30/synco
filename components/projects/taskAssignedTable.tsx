@@ -736,6 +736,54 @@ export function DataTableDemo({
   const [rowSelection, setRowSelection] = React.useState({})
   const [statusFilter, setStatusFilter] = React.useState<string>("")
   const [priorityFilter, setPriorityFilter] = React.useState<string>("")
+  const [issuesData, setIssuesData] = React.useState<any[]>([])
+
+  // Fetch real issues data when dataSource is "issues"
+  React.useEffect(() => {
+    if (dataSource === "issues" && !externalData) {
+      const fetchIssues = async () => {
+        const authToken = localStorage.getItem("authToken")
+        if (!authToken) {
+          console.error("No auth token found")
+          return
+        }
+
+        try {
+          const authorizationHeader = authToken.startsWith("Bearer ") ? authToken : `Bearer ${authToken}`
+          const res = await fetch("/api/issues", {
+            headers: {
+              "Authorization": authorizationHeader,
+            },
+          })
+
+          if (res.ok) {
+            const data = await res.json()
+            // Transform API data to match the expected format
+            const transformedData = data.all.map((issue: any) => ({
+              id: issue.id,
+              title: issue.title,
+              status: issue.status.toLowerCase(), // API returns OPEN, IN_PROGRESS, DONE, etc.
+              priority: issue.priority.toLowerCase(), // API returns LOW, MEDIUM, HIGH
+              email: issue.assignee?.email || "unassigned@example.com",
+              projectName: issue.project?.name || "Unknown Project",
+              creatorId: issue.creatorId,
+              assigneeId: issue.assigneeId,
+              creator: issue.creator?.name || "Unknown",
+              assignee: issue.assignee?.name || "Unassigned",
+              deadline: issue.deadline ? new Date(issue.deadline).toISOString() : undefined,
+            }))
+            setIssuesData(transformedData)
+          } else {
+            console.error("Failed to fetch issues")
+          }
+        } catch (error) {
+          console.error("Error fetching issues:", error)
+        }
+      }
+
+      fetchIssues()
+    }
+  }, [dataSource, externalData])
 
   React.useEffect(() => {
     setColumnFilters((prev) => {
@@ -758,13 +806,41 @@ export function DataTableDemo({
     const sourceData = externalData ?? (dataSource === "issues" ? issuesData : data)
     
     if (dataSource === "issues") {
+      // Get current user ID from localStorage for filtering
+      const getCurrentUserId = () => {
+        try {
+          const token = localStorage.getItem("authToken")
+          if (!token) return null
+          
+          // Simple decode to get user ID (this is a basic approach)
+          const base64Url = token.split('.')[1]
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+          const jsonPayload = decodeURIComponent(atob(base64))
+          const parsed = JSON.parse(jsonPayload)
+          return parsed.id
+        } catch {
+          return null
+        }
+      }
+      
+      const currentUserId = getCurrentUserId()
+      
       switch (filterType) {
         case "assigned":
-          return (sourceData as Issue[]).filter(issue => issue.status === "open" || issue.status === "in-progress")
+          return (sourceData as Issue[]).filter(issue => 
+            issue.assigneeId === currentUserId && 
+            (issue.status === "open" || issue.status === "in-progress")
+          )
         case "created":
-          return (sourceData as Issue[]).filter(issue => issue.status === "open")
+          return (sourceData as Issue[]).filter(issue => 
+            issue.creatorId === currentUserId
+            // Show all issues created by user regardless of status
+          )
         case "completed":
-          return (sourceData as Issue[]).filter(issue => issue.status === "resolved" || issue.status === "closed")
+          return (sourceData as Issue[]).filter(issue => 
+            (issue.assigneeId === currentUserId || issue.creatorId === currentUserId) && 
+            (issue.status === "done" || issue.status === "resolved" || issue.status === "closed")
+          )
         default:
           return sourceData as Issue[]
       }
@@ -780,7 +856,7 @@ export function DataTableDemo({
           return sourceData as Payment[]
       }
     }
-  }, [externalData, dataSource, filterType])
+  }, [externalData, issuesData, dataSource, filterType])
 
   // Create dynamic columns based on showProjectColumn prop
   const dynamicColumns = React.useMemo(() => {
@@ -934,6 +1010,9 @@ export function DataTableDemo({
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setStatusFilter("in-progress")}>
                   In Progress
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter("done")}>
+                  Done
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setStatusFilter("resolved")}>
                   Resolved
