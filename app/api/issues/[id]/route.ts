@@ -106,7 +106,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       timestamp: issue.createdAt.toISOString(),
     }
 
-    const mappedActivities = activities.map((a) => ({
+    const mappedActivities = activities.map((a: any) => ({
       id: a.id,
       type: (a.type as any) ?? "comment",
       text: a.content ?? "",
