@@ -1,6 +1,8 @@
 import {NextRequest, NextResponse} from "next/server";
 import {prisma} from "@/src/lib/prisma";
 import { getUserFromRequest } from "@/src/lib/auth";
+import { sendEmail } from "@/app/api/lib/email";
+import { userAddedToProjectEmail } from "@/app/api/lib/emailTemplets/userAddedToProject";
 
 export async function GET(req: NextRequest, {params}: {params: Promise<{projectId: string}>}){
     const auth = getUserFromRequest(req);
@@ -70,6 +72,31 @@ export async function POST(req: NextRequest, {params}: {params: Promise<{project
             return NextResponse.json({error: "User not found"}, {status: 404});
         }
 
+        // Get project details for email
+        const project = await prisma.project.findUnique({
+            where: {
+                id: projectId
+            },
+            select: {
+                name: true,
+                id: true
+            }
+        })
+
+        if(!project){
+            return NextResponse.json({error: "Project not found"}, {status: 404});
+        }
+
+        // Get the name of the user who is adding the member
+        const addingUser = await prisma.user.findUnique({
+            where: {
+                id: user.userId
+            },
+            select: {
+                name: true
+            }
+        })
+
         const newMember = await prisma.projectMember.create({
             data: {
                 projectId: projectId,
@@ -77,6 +104,31 @@ export async function POST(req: NextRequest, {params}: {params: Promise<{project
                 role: "MEMBER"
             }
         })
+
+        // Send email notification
+        try {
+            console.log("Preparing to send email to:", userToAdd.email);
+            console.log("Project name:", project.name);
+            console.log("Added by:", addingUser?.name || "A team member");
+            
+            const { subject, html } = userAddedToProjectEmail({
+                projectName: project.name,
+                projectId: project.id,
+                addedByName: addingUser?.name || "A team member",
+            });
+
+            console.log("Email template created, sending...");
+            await sendEmail({
+                to: userToAdd.email,
+                subject,
+                html,
+            });
+
+            console.log(`Email sent to ${userToAdd.email} for project ${project.name}`);
+        } catch (emailError) {
+            console.error("Error sending email notification:", emailError);
+            // Don't fail the request if email fails, but log it
+        }
 
         return NextResponse.json(newMember)
 
