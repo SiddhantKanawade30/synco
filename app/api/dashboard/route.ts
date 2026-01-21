@@ -6,7 +6,7 @@ import { NextResponse, NextRequest } from "next/server"
 export async function GET(req: NextRequest){
     try{
         const user = getUserFromRequest(req)
-        if(!user || user.userId){
+        if(!user || !user.userId){
             return new Response("Unauthorized - Invalid token", {status: 401});
         }
 

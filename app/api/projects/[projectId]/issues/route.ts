@@ -36,7 +36,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
             return new Response("Project not found", {status: 404});
         }
 
-        const isOwnerOrMember = project.ownerId === user.userId || project.members.some(m => m.userId === user.userId)
+        const isOwnerOrMember = project.ownerId === user.userId || project.members.some((m: { userId: string }) => m.userId === user.userId)
         if(!isOwnerOrMember){
             return new Response("Unauthorized", {status: 401});
         }
@@ -95,7 +95,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ proj
             return new Response("Project not found", {status: 404});
         }
         
-        if(isOwnerOrMember.ownerId !== user.userId && !isOwnerOrMember.members.some(member => member.userId === user.userId)){
+        if(isOwnerOrMember.ownerId !== user.userId && !isOwnerOrMember.members.some((member: { userId: string }) => member.userId === user.userId)){
             return new Response("Unauthorized", {status: 401});
         }
 
