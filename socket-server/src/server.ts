@@ -4,7 +4,15 @@ import { Server, Socket } from "socket.io";
 import cors from "cors";
 import jwt from "jsonwebtoken";
 
-import { prisma } from "./lib/prisma.js";
+import { PrismaClient } from '@prisma/client'
+
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env['DATABASE_URL'] || '',
+    },
+  },
+})
 
 type AuthedSocket = Socket & { userId?: string };
 
