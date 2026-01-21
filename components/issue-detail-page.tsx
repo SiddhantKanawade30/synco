@@ -20,6 +20,8 @@ interface IssueDetailPageProps {
   issue: Issue
 }
 
+const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL
+
 export function IssueDetailComponent({ issue }: IssueDetailPageProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [localIssue, setLocalIssue] = useState<Issue>(issue)
@@ -35,8 +37,10 @@ export function IssueDetailComponent({ issue }: IssueDetailPageProps) {
     const authToken = localStorage.getItem("authToken")
     if (!authToken) return
 
-    const s = io({
-      auth: { token: authToken.startsWith("Bearer ") ? authToken : `Bearer ${authToken}` },
+    const s = io(socketUrl, {
+      auth: {
+        token: authToken.startsWith("Bearer ") ? authToken : `Bearer ${authToken}`
+      },
     })
 
     s.on("connect", () => {
