@@ -33,10 +33,8 @@ export function NavMain({
 
   const handleCreateProject = (project: {
     name: string
-    description: string
     deadline: Date
-    lead: TeamMember
-    members: TeamMember[]
+    members: string[]
   }) => {
     console.log("Quick create project:", project)
     setOpenCreateProject(false)
@@ -47,6 +45,7 @@ export function NavMain({
     description: string
     assignee: TeamMember
     deadline: Date
+    priority: "LOW" | "MEDIUM" | "HIGH"
     project?: string
   }) => {
     console.log("Quick create issue:", issue)
@@ -72,12 +71,15 @@ export function NavMain({
                 <div className="space-y-1">
                   <CreateProjectForm 
                     onSubmit={handleCreateProject}
-                    currentUser={teamMembers[0]}
                     trigger={
                       <Button
                         variant="ghost"
                         className="w-full justify-start"
-                        onClick={() => setOpenCreateProject(true)}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setOpenCreateProject(true)
+                        }}
                       >
                         <IconFolder className="h-4 w-4 mr-2" />
                         Create Project
@@ -91,7 +93,11 @@ export function NavMain({
                       <Button
                         variant="ghost"
                         className="w-full justify-start"
-                        onClick={() => setOpenCreateIssue(true)}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setOpenCreateIssue(true)
+                        }}
                       >
                         <IconBug className="h-4 w-4 mr-2" />
                         Create Issue

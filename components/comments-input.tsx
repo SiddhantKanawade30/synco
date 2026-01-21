@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Activity } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -30,14 +30,14 @@ export function CommentsInput({ onSubmit, activities }: CommentsInputProps) {
     }
   }
 
-  const comments = activities.filter(a => a.type === 'comment')
+  const comments = useMemo(() => activities.filter(a => a.type === 'comment' || a.type === 'chats'), [activities])
 
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-semibold mb-4">Comments</h3>
+      {/* <h3 className="text-lg font-semibold mb-4">Comments</h3> */}
       
       {/* Existing Comments */}
-      {comments.length > 0 && (
+      {/* {comments.length > 0 && (
         <div className="space-y-4 mb-6">
           {comments.map((activity) => (
             <div key={activity.id} className="bg-card rounded-lg border p-4">
@@ -62,7 +62,7 @@ export function CommentsInput({ onSubmit, activities }: CommentsInputProps) {
             </div>
           ))}
         </div>
-      )}
+      )} */}
 
       {/* Comment Input */}
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -73,6 +73,15 @@ export function CommentsInput({ onSubmit, activities }: CommentsInputProps) {
             placeholder="Add a comment..."
             className="min-h-[100px] resize-none pr-12"
             disabled={isSubmitting}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault()
+                if (!comment.trim() || isSubmitting) return
+                // Manually submit when Enter is pressed
+                const fakeEvent = { preventDefault: () => {} } as React.FormEvent<HTMLFormElement>
+                void handleSubmit(fakeEvent)
+              }
+            }}
           />
           <Button
             type="submit"

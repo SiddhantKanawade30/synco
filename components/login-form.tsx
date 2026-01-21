@@ -1,4 +1,8 @@
+"use client"
+
 import { GalleryVerticalEnd } from "lucide-react"
+import { useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -16,9 +20,49 @@ export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  const message = searchParams.get("message")
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError("")
+
+    const formData = new FormData(e.currentTarget)
+    const email = formData.get("email") as string
+    const password = formData.get("password") as string
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        localStorage.setItem("authToken", `Bearer ${data.token}`)
+        router.push("/dashboard")
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || "Invalid credentials")
+      }
+    } catch (error) {
+      setError("Network error. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <form>
+      <form onSubmit={handleSubmit}>
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
             <a
@@ -28,26 +72,43 @@ export function LoginForm({
               <div className="flex size-8 items-center justify-center rounded-md">
                 <GalleryVerticalEnd className="size-6" />
               </div>
-              <span className="sr-only">Acme Inc.</span>
+              <span className="sr-only">Synco</span>
             </a>
-            <h1 className="text-xl font-bold">Welcome to Acme Inc.</h1>
+            <h1 className="text-xl font-bold">Welcome to Synco.</h1>
             <FieldDescription>
               Don&apos;t have an account? <Link href="/signup">Sign up</Link>
             </FieldDescription>
           </div>
+          {message && (
+            <div className="text-green-500 text-sm text-center">{message}</div>
+          )}
           <Field>
             <FieldLabel htmlFor="email">Email</FieldLabel>
             <Input
               id="email"
+              name="email"
               type="email"
               placeholder="m@example.com"
               required
             />
           </Field>
           <Field>
-            <Link href="/dashboard">
-            <Button type="submit" className="w-full">Login</Button>
-            </Link>
+            <FieldLabel htmlFor="password">Password</FieldLabel>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="********"
+              required
+            />
+          </Field>
+          {error && (
+            <div className="text-red-500 text-sm text-center">{error}</div>
+          )}
+          <Field>
+            <Button type="submit" disabled={isLoading} className="w-full">
+              {isLoading ? "Signing in..." : "Login"}
+            </Button>
           </Field>
           <FieldSeparator>Or</FieldSeparator>
           <Field className="grid gap-4 sm:grid-cols-2">

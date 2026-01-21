@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -27,36 +27,92 @@ export function ProjectOverview({ projectId, projectName }: ProjectOverviewProps
   ])
   const [openAddMember, setOpenAddMember] = useState(false)
   const [newMemberEmail, setNewMemberEmail] = useState("")
+  const [pendingMemberEmails, setPendingMemberEmails] = useState<string[]>([])
+  const [isSavingMembers, setIsSavingMembers] = useState(false)
 
   // Mock project data
-  const projectData = {
+  const projectData = useMemo(() => ({
     deadline: new Date("2026-03-15"),
     totalIssues: 24,
     solvedIssues: 18,
     lead: teamMembers[0], // Siddhant Kanawade
     status: "In Progress",
     priority: "High"
+  }), [])
+
+  const completionRate = useMemo(() => 
+    Math.round((projectData.solvedIssues / projectData.totalIssues) * 100),
+    [projectData.solvedIssues, projectData.totalIssues]
+  )
+
+  const handleAddEmailToList = () => {
+    const email = newMemberEmail.trim()
+    if (!email) return
+
+    const alreadyInPending = pendingMemberEmails.includes(email)
+    const alreadyInTeam = projectTeam.some(member => member.email === email)
+
+    if (alreadyInPending || alreadyInTeam) {
+      setNewMemberEmail("")
+      return
+    }
+
+    setPendingMemberEmails(prev => [...prev, email])
+    setNewMemberEmail("")
   }
 
-  const completionRate = Math.round((projectData.solvedIssues / projectData.totalIssues) * 100)
+  const handleSaveMembers = async () => {
+    if (!pendingMemberEmails.length) return
 
-  const handleAddTeamMember = () => {
-    if (!newMemberEmail.trim()) return
-    
-    // Create new team member with email
-    const newMember: TeamMember = {
-      id: `new-${Date.now()}`,
-      name: newMemberEmail.split('@')[0], // Extract name from email
-      email: newMemberEmail,
-      avatar: `https://ui-avatars.com/api/?name=${newMemberEmail.split('@')[0]}&background=random`,
-      role: "Team Member"
-    }
-    
-    // Check if member already exists
-    if (!projectTeam.find(m => m.email === newMemberEmail)) {
-      setProjectTeam([...projectTeam, newMember])
+    try {
+      setIsSavingMembers(true)
+
+      const authToken = localStorage.getItem("authToken")
+      if (!authToken) {
+        console.error("No auth token found")
+        setIsSavingMembers(false)
+        return
+      }
+      const authorizationHeader = authToken.startsWith("Bearer ") ? authToken : `Bearer ${authToken}`
+
+      // Call backend to add each member
+      const responses = await Promise.all(
+        pendingMemberEmails.map(email =>
+          fetch(`/api/projects/${projectId}/members`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": authorizationHeader,
+            },
+            body: JSON.stringify({ email, role: "MEMBER" }),
+          }),
+        ),
+      )
+
+      const failed = responses.filter(r => !r.ok)
+      if (failed.length > 0) {
+        const firstErrorText = await failed[0].text().catch(() => "Unknown error")
+        console.error("Failed to add some members:", firstErrorText)
+        return
+      }
+
+      // Optimistically update local team list for UI
+      const newMembers: TeamMember[] = pendingMemberEmails.map(email => ({
+        id: `new-${email}-${Date.now()}`,
+        name: email.split("@")[0],
+        email,
+        avatar: `https://ui-avatars.com/api/?name=${email.split("@")[0]}&background=random`,
+        role: "Team Member",
+      }))
+
+      setProjectTeam(prev => [...prev, ...newMembers])
+      setPendingMemberEmails([])
       setNewMemberEmail("")
       setOpenAddMember(false)
+    } catch (error) {
+      console.error("Failed to add members", error)
+    } finally {
+      setIsSavingMembers(false)
     }
   }
 
@@ -175,20 +231,51 @@ export function ProjectOverview({ projectId, projectName }: ProjectOverviewProps
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email Address</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={newMemberEmail}
-                      onChange={(e) => setNewMemberEmail(e.target.value)}
-                      placeholder="Enter team member email"
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        id="email"
+                        type="email"
+                        value={newMemberEmail}
+                        onChange={(e) => setNewMemberEmail(e.target.value)}
+                        placeholder="Enter team member email"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault()
+                            handleAddEmailToList()
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleAddEmailToList}
+                        disabled={!newMemberEmail.trim()}
+                      >
+                        Add
+                      </Button>
+                    </div>
                   </div>
+                  {pendingMemberEmails.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Members to be added:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {pendingMemberEmails.map(email => (
+                          <Badge key={email} variant="secondary" className="text-xs">
+                            {email}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div className="flex justify-end gap-2">
                     <Button type="button" variant="outline" onClick={() => setOpenAddMember(false)}>
                       Cancel
                     </Button>
-                    <Button onClick={handleAddTeamMember} disabled={!newMemberEmail.trim()}>
-                      Add Member
+                    <Button
+                      onClick={handleSaveMembers}
+                      disabled={!pendingMemberEmails.length || isSavingMembers}
+                    >
+                      {isSavingMembers ? "Adding..." : "Add Members"}
                     </Button>
                   </div>
                 </div>

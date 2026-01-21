@@ -1,52 +1,152 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { ProjectsTable } from "@/components/projects-table"
 import { SiteHeader } from "@/components/site-header"
 import { CreateProjectForm } from "@/components/create-project-form"
-import { TeamMember, teamMembers } from "@/lib/team-data"
 import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
 
-export default function ProjectsPage() {
-  const [projects, setProjects] = useState([
-    {
-      id: "project-1",
-      name: "Project Alpha",
-      description: "Mobile app development project",
-      deadline: new Date("2026-03-15"),
-      lead: teamMembers[0],
-      members: [teamMembers[1], teamMembers[2]],
-      status: "In Progress"
-    },
-    {
-      id: "project-2", 
-      name: "Project Beta",
-      description: "Web platform redesign",
-      deadline: new Date("2026-04-20"),
-      lead: teamMembers[3],
-      members: [teamMembers[4], teamMembers[5]],
-      status: "Planning"
+interface Project {
+  id: string
+  name: string
+  deadline: string
+  createdAt: string
+  members?: Array<{
+    user: {
+      name: string
+      email: string
     }
-  ])
+  }>
+}
 
-  const handleCreateProject = (project: {
-    name: string
-    description: string
-    deadline: Date
-    lead: TeamMember
-    members: TeamMember[]
-  }) => {
-    const newProject = {
-      id: `project-${Date.now()}`,
-      ...project,
-      status: "Planning" as const
+interface PaginationData {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  hasMore: boolean
+}
+
+export default function ProjectsPage() {
+  const [projects, setProjects] = useState<Project[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [pagination, setPagination] = useState<PaginationData>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+    hasMore: false
+  })
+
+  const fetchProjects = useCallback(async (page: number = 1, append: boolean = false) => {
+    setIsLoading(true)
+    try {
+      const authToken = localStorage.getItem("authToken")
+      if (!authToken) {
+        console.error("No auth token found")
+        return
+      }
+
+      const response = await fetch(`/api/projects?page=${page}&limit=10`, {
+        headers: {
+          "Authorization": authToken
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch projects")
+      }
+
+      const data = await response.json()
+      
+      if (append) {
+        setProjects(prev => [...prev, ...data.projects])
+      } else {
+        setProjects(data.projects)
+      }
+      
+      setPagination(data.pagination)
+    } catch (error) {
+      console.error("Error fetching projects:", error)
+    } finally {
+      setIsLoading(false)
     }
-    setProjects([...projects, newProject])
-    console.log("Created project:", newProject)
+  }, [])
+
+  useEffect(() => {
+    fetchProjects()
+  }, [fetchProjects])
+
+  const handleCreateProject = async(project: {
+    name: string
+    deadline: Date
+    members: string[]
+  }) => {
+    const authToken = localStorage.getItem("authToken")
+    
+    if (!authToken) {
+      console.error("No auth token found")
+      return
+    }
+
+    console.log("Sending project data:", project)
+    console.log("Members array:", project.members)
+    console.log("Members type:", typeof project.members)
+    console.log("Members length:", project.members?.length)
+    
+    try {
+      const response = await fetch("/api/projects", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": authToken
+        },
+        body: JSON.stringify(project),
+      })
+      
+      console.log("Response status:", response.status)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error("Error response:", errorText)
+        return
+      }
+      
+      const createdProject = await response.json()
+      console.log("Project created:", createdProject)
+      
+      // Add the new project to the beginning of the list
+      setProjects(prev => {
+        console.log("Current projects before adding:", prev)
+        const newProjects = [createdProject, ...prev]
+        console.log("Projects after adding:", newProjects)
+        return newProjects
+      })
+      
+      // Update pagination to reflect the new total
+      setPagination(prev => {
+        console.log("Current pagination before:", prev)
+        const newPagination = {
+          ...prev,
+          total: prev.total + 1
+        }
+        console.log("Pagination after:", newPagination)
+        return newPagination
+      })
+      
+    } catch (error) {
+      console.error("Network error:", error)
+    }
+  }
+
+  const handleLoadMore = () => {
+    if (pagination.hasMore && !isLoading) {
+      fetchProjects(pagination.page + 1, true)
+    }
   }
 
   return (
@@ -71,13 +171,17 @@ export default function ProjectsPage() {
                     Manage and track all your projects in one place.
                   </p>
                 </div>
-                <CreateProjectForm 
+                <CreateProjectForm
                   onSubmit={handleCreateProject}
-                  currentUser={teamMembers[0]} // Current user as project lead
                 />
               </div>
               <div className="px-4 lg:px-6">
-                <ProjectsTable />
+                <ProjectsTable 
+                  projects={projects}
+                  onLoadMore={handleLoadMore}
+                  hasMore={pagination.hasMore}
+                  isLoading={isLoading}
+                />
               </div>
             </div>
           </div>
