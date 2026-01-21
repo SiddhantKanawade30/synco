@@ -53,7 +53,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const canAccess =
       issue.project.ownerId === auth.userId ||
-      issue.project.members.some((m) => m.userId === auth.userId)
+      issue.project.members.some((m: { userId: string }) => m.userId === auth.userId)
 
     if (!canAccess) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
