@@ -1,5 +1,7 @@
 import {prisma} from "@/src/lib/prisma";
 import { getUserFromRequest } from "@/src/lib/auth";
+import { sendEmail } from "@/app/api/lib/email";
+import { userAddedToProjectEmail } from "@/app/api/lib/emailTemplets/userAddedToProject";
 
 export async function POST(req: Request){
     const auth = getUserFromRequest(req);
@@ -54,6 +56,40 @@ export async function POST(req: Request){
                             }
                         })
                         console.log(`Added member ${email} to project ${project.id}`)
+                        
+                        // Send email notification
+                        try {
+                            console.log("Preparing to send email to:", userToAdd.email);
+                            console.log("Project name:", project.name);
+                            
+                            // Get the name of the user who is creating the project
+                            const creatingUser = await prisma.user.findUnique({
+                                where: {
+                                    id: auth.userId
+                                },
+                                select: {
+                                    name: true
+                                }
+                            })
+                            
+                            const { subject, html } = userAddedToProjectEmail({
+                                projectName: project.name,
+                                projectId: project.id,
+                                addedByName: creatingUser?.name || "A team member",
+                                projectDeadline: project.deadline ? new Date(project.deadline).toLocaleDateString() : undefined,
+                            });
+
+                            await sendEmail({
+                                to: userToAdd.email,
+                                subject,
+                                html,
+                            });
+
+                            console.log(`Email sent to ${userToAdd.email} for project ${project.name}`);
+                        } catch (emailError) {
+                            console.error("Error sending email notification:", emailError);
+                            // Don't fail the request if email fails, but log it
+                        }
                     } else {
                         console.log(`User not found for email: ${email}`)
                     }
