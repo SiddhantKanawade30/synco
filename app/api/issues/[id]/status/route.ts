@@ -5,10 +5,16 @@ import { sendEmail } from '@/app/api/lib/email'
 import { issueCompletedEmail } from '@/app/api/lib/emailTemplets/issueCompleted'
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  console.log("=== STATUS UPDATE API CALLED ===");
+  
   try {
     const { id } = await params
     const body = await request.json()
     const { status } = body
+    
+    console.log("=== STATUS UPDATE API CALLED ===");
+    console.log("Issue ID:", id);
+    console.log("Status received:", status, "Type:", typeof status);
     
     if (!status) {
       return NextResponse.json(
@@ -42,8 +48,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       data: { status }
     })
 
-    // Send email notification if issue is marked as DONE
-    if (status === 'DONE') {
+    // Send email notification if issue is marked as DONE or resolved
+    console.log("Status received:", status, "Type:", typeof status);
+    console.log("Status === 'DONE':", status === 'DONE');
+    console.log("Status === 'resolved':", status === 'resolved');
+    console.log("Status.toUpperCase() === 'DONE':", status?.toUpperCase() === 'DONE');
+    
+    if (status?.toUpperCase() === 'DONE' || status?.toLowerCase() === 'resolved') {
       try {
         console.log("Preparing to send completion email to:", currentIssue.creator.email);
         

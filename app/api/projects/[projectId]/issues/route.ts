@@ -57,6 +57,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
         })
 
         // Send email notification if issue is assigned to someone
+        console.log("Issue creation - assigneeId:", assigneeId, "user.userId:", user.userId);
+        console.log("Should send email?", assigneeId && assigneeId !== user.userId);
+        
         if (assigneeId && assigneeId !== user.userId) {
             try {
                 console.log("Preparing to send assignment email to:", assigneeId);
@@ -67,10 +70,27 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
                     select: { email: true, name: true }
                 });
 
-                if (assignee) {
+                // Get project details
+                const project = await prisma.project.findUnique({
+                    where: { id: projectId },
+                    select: { name: true }
+                });
+
+                // Get creator details
+                const creator = await prisma.user.findUnique({
+                    where: { id: user.userId },
+                    select: { name: true }
+                });
+
+                if (assignee && project && creator) {
                     const { subject, html } = issueAssignedEmail({
                         issueTitle: title,
                         issueId: issue.id,
+                        assigneeName: assignee.name,
+                        issueDescription: description,
+                        issueDeadline: deadline ? new Date(deadline).toLocaleDateString() : 'Not set',
+                        projectName: project.name,
+                        assignedBy: creator.name,
                     });
 
                     await sendEmail({

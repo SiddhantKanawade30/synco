@@ -76,6 +76,7 @@ export async function POST(req: Request){
                                 projectName: project.name,
                                 projectId: project.id,
                                 addedByName: creatingUser?.name || "A team member",
+                                projectDeadline: project.deadline ? new Date(project.deadline).toLocaleDateString() : undefined,
                             });
 
                             await sendEmail({
