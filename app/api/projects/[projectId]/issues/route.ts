@@ -1,6 +1,8 @@
 import { getUserFromRequest } from "@/src/lib/auth";
 import {prisma} from "@/src/lib/prisma"
 import { NextRequest } from "next/server";
+import { sendEmail } from "@/app/api/lib/email";
+import { issueAssignedEmail } from "@/app/api/lib/emailTemplets/issueAssigned";
 
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ projectId: string }> }){
@@ -53,6 +55,57 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
                 creatorId: user.userId
             }
         })
+
+        // Send email notification if issue is assigned to someone
+        console.log("Issue creation - assigneeId:", assigneeId, "user.userId:", user.userId);
+        console.log("Should send email?", assigneeId && assigneeId !== user.userId);
+        
+        if (assigneeId && assigneeId !== user.userId) {
+            try {
+                console.log("Preparing to send assignment email to:", assigneeId);
+                
+                // Get assignee details
+                const assignee = await prisma.user.findUnique({
+                    where: { id: assigneeId },
+                    select: { email: true, name: true }
+                });
+
+                // Get project details
+                const project = await prisma.project.findUnique({
+                    where: { id: projectId },
+                    select: { name: true }
+                });
+
+                // Get creator details
+                const creator = await prisma.user.findUnique({
+                    where: { id: user.userId },
+                    select: { name: true }
+                });
+
+                if (assignee && project && creator) {
+                    const { subject, html } = issueAssignedEmail({
+                        issueTitle: title,
+                        issueId: issue.id,
+                        assigneeName: assignee.name,
+                        issueDescription: description,
+                        issueDeadline: deadline ? new Date(deadline).toLocaleDateString() : 'Not set',
+                        projectName: project.name,
+                        assignedBy: creator.name,
+                    });
+
+                    await sendEmail({
+                        to: assignee.email,
+                        subject,
+                        html,
+                    });
+
+                    console.log(`Assignment email sent to ${assignee.email} for issue ${title}`);
+                }
+            } catch (emailError) {
+                console.error("Error sending assignment email:", emailError);
+                // Don't fail the request if email fails, but log it
+            }
+        }
         
         return Response.json(issue);
     }catch(error){

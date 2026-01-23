@@ -1,6 +1,8 @@
 import {prisma} from "@/src/lib/prisma";
 import { getUserFromRequest } from "@/src/lib/auth";
 import { NextRequest } from "next/server";
+import { sendEmail } from "@/app/api/lib/email";
+import { issueCompletedEmail } from "@/app/api/lib/emailTemplets/issueCompleted";
 
 const MEMBER_TRANSITIONS: Record<string, string[]> = {
   BACKLOG: ["OPEN"],
@@ -96,6 +98,54 @@ export async function PATCH(req: NextRequest, {params}: {params: Promise<{projec
           where: { id: issue.id },
           data: { status },
         });
+
+        // Send email notification if issue is marked as DONE or resolved
+        console.log("=== STATUS UPDATE EMAIL CHECK ===");
+        console.log("Status received:", status, "Type:", typeof status);
+        console.log("Status === 'DONE':", status === 'DONE');
+        console.log("Status === 'resolved':", status === 'resolved');
+        console.log("Status.toUpperCase() === 'DONE':", status?.toUpperCase() === 'DONE');
+        
+        if (status?.toUpperCase() === 'DONE' || status?.toLowerCase() === 'resolved') {
+          try {
+            console.log("Preparing to send completion email to creator...");
+            
+            // Get issue details with creator info
+            const issueWithCreator = await prisma.issue.findUnique({
+              where: { id: issue.id },
+              include: {
+                creator: { select: { name: true, email: true } },
+                project: { select: { name: true } }
+              }
+            });
+
+            // Get user who completed the issue
+            const completedByUser = await prisma.user.findUnique({
+              where: { id: user.userId },
+              select: { name: true }
+            });
+
+            if (issueWithCreator?.creator.email && completedByUser && issueWithCreator.creatorId !== user.userId) {
+              const { subject, html } = issueCompletedEmail({
+                issueTitle: issueWithCreator.title,
+                issueId: issue.id,
+                projectId: issueWithCreator.projectId,
+                assigneeName: completedByUser.name,
+              });
+
+              await sendEmail({
+                to: issueWithCreator.creator.email,
+                subject,
+                html,
+              });
+
+              console.log(`Completion email sent to ${issueWithCreator.creator.email} for issue ${issueWithCreator.title}`);
+            }
+          } catch (emailError) {
+            console.error("Error sending completion email:", emailError);
+            // Don't fail the request if email fails, but log it
+          }
+        }
 
         // 🧾 Log activity
         await prisma.activity.create({
