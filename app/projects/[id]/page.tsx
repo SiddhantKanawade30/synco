@@ -105,7 +105,7 @@ export default function ProjectsPage({ params }: { params: Promise<{ id: string 
     const authorizationHeader = authToken.startsWith("Bearer ") ? authToken : `Bearer ${authToken}`
 
     setIsCreatingIssue(true)
-    
+
     try {
       console.log("Making API call to:", `/api/projects/${projectId}/issues`)
       
@@ -244,6 +244,7 @@ export default function ProjectsPage({ params }: { params: Promise<{ id: string 
               <CreateIssueForm
                 onSubmit={handleCreateIssue}
                 assignees={projectMembers}
+                projectId={projectId}
               />
             </div> */}
 
@@ -346,6 +347,7 @@ export default function ProjectsPage({ params }: { params: Promise<{ id: string 
                   <CreateIssueForm
                     onSubmit={handleCreateIssue}
                     assignees={projectMembers}
+                    projectId={projectId}
                     trigger={<Button>Create Issue</Button>}
                   />
                 </div>
