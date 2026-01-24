@@ -2,6 +2,9 @@
 CREATE TYPE "IssueStatus" AS ENUM ('OPEN', 'IN_PROGRESS', 'DONE', 'REJECTED', 'BACKLOG');
 
 -- CreateEnum
+CREATE TYPE "ProjectStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'COMPLETED');
+
+-- CreateEnum
 CREATE TYPE "ProjectRole" AS ENUM ('OWNER', 'ADMIN', 'MEMBER');
 
 -- CreateEnum
@@ -27,6 +30,8 @@ CREATE TABLE "Project" (
     "ownerId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deadline" TIMESTAMP(3) NOT NULL DEFAULT now() + interval '30 days',
+    "status" "ProjectStatus" NOT NULL DEFAULT 'ACTIVE',
 
     CONSTRAINT "Project_pkey" PRIMARY KEY ("id")
 );
@@ -48,10 +53,12 @@ CREATE TABLE "Issue" (
     "description" TEXT,
     "status" "IssueStatus" NOT NULL,
     "priority" "IssuePriority" NOT NULL,
+    "deadline" TIMESTAMP(3) NOT NULL DEFAULT now() + interval '30 hours',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "projectId" TEXT NOT NULL,
     "assigneeId" TEXT,
+    "creatorId" TEXT NOT NULL,
 
     CONSTRAINT "Issue_pkey" PRIMARY KEY ("id")
 );
@@ -82,6 +89,9 @@ CREATE INDEX "Issue_projectId_idx" ON "Issue"("projectId");
 CREATE INDEX "Issue_assigneeId_idx" ON "Issue"("assigneeId");
 
 -- CreateIndex
+CREATE INDEX "Issue_creatorId_idx" ON "Issue"("creatorId");
+
+-- CreateIndex
 CREATE INDEX "Activity_issueId_idx" ON "Activity"("issueId");
 
 -- CreateIndex
@@ -101,6 +111,9 @@ ALTER TABLE "Issue" ADD CONSTRAINT "Issue_projectId_fkey" FOREIGN KEY ("projectI
 
 -- AddForeignKey
 ALTER TABLE "Issue" ADD CONSTRAINT "Issue_assigneeId_fkey" FOREIGN KEY ("assigneeId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Issue" ADD CONSTRAINT "Issue_creatorId_fkey" FOREIGN KEY ("creatorId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Activity" ADD CONSTRAINT "Activity_issueId_fkey" FOREIGN KEY ("issueId") REFERENCES "Issue"("id") ON DELETE CASCADE ON UPDATE CASCADE;
