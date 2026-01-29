@@ -49,14 +49,14 @@ export function Navbar() {
                         </motion.div>
                     ))}
                 </div>
-            </div>
+            </div> 
             <div className="flex gap-2">
                 <motion.div
                     initial={{ scale: 0.8 }}
                     animate={{ scale: 1 }}
                     transition={{ duration: 0.3, delay: 0.4 }}
                 >
-                    <Link href="/signin">
+                    <Link href="/get-started">
                         <Button className="rounded-full px-6 py-2">Get Started</Button>
                     </Link>
                 </motion.div>

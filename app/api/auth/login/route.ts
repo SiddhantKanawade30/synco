@@ -14,7 +14,7 @@ export async function POST(req: Request){
     if(!existingUser){
         return Response.json({error: "User not found"}, {status: 404})
     }
-
+    //@ts-ignore
     const isPasswordValid = await bcrypt.compare(password, existingUser.password);
 
     if(!isPasswordValid){
