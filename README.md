@@ -39,4 +39,3 @@ npm run build
 npm start
 ```
 
-Build with love by **Team Name**
